@@ -1,0 +1,1737 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Stable LatentMoE / QB / KDA 衰减与擦除 / MLA，读苏剑林《简单谈谈K3的MoE和Attention》">
+      
+      
+      
+        <link rel="canonical" href="https://xingdong1111-creator.github.io/Action_wiki/%E5%A4%A7%E6%A8%A1%E5%9E%8B/k3%E5%88%86%E6%9E%90/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../../%E9%9A%8F%E7%AC%94/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Kimi K3 架构分析（MoE 与 Attention） - Action</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#1-silu-swiglu" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../.." title="Action" class="md-header__button md-logo" aria-label="Action" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Action
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Kimi K3 架构分析（MoE 与 Attention）
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切到深色"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="切到深色" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切到浅色"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="切到浅色" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  大模型
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../%E9%9A%8F%E7%AC%94/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  随笔
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Action" class="md-nav__button md-logo" aria-label="Action" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Action
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    大模型
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    大模型
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kimi K3 架构分析
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kimi K3 架构分析
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-silu-swiglu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. SiLU 与 SwiGLU 的病根
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. SiLU 与 SwiGLU 的病根">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-silu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 SiLU 本体
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-swiglu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 在 SwiGLU 里的位置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-ox4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 病根：正区无上界 × 乘性结构 = O(‖x‖⁴)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-latentmoe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. LatentMoE：原理与好处
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. LatentMoE：原理与好处">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-moe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 普通 MoE 的两本账
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 结构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 好处
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-k3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 K3 落地
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-stable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 代价：四个矩阵连乘 → "Stable" 三件套
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-moe-aux-loss-qb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. MoE 负载均衡：从 aux loss 到 QB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. MoE 负载均衡：从 aux loss 到 QB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 传统前向流程（六步）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 负载不均衡问题
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 三代做法对比
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-qb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 QB 推导链
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 工程落地：直方图近似（利用分布可加性）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-kda" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. KDA 的衰减机制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. KDA 的衰减机制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 状态更新：衰减 + 擦除 + 写入
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 擦除是怎么完成的：方向性对消
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.2 擦除是怎么完成的：方向性对消">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#d_k2key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数字例子（d_k=2，key 已归一化）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        要点
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 衰减的三个特征
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 一句话定位
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-mlamulti-head-latent-attention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. MLA（Multi-head Latent Attention）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. MLA（Multi-head Latent Attention）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-kv-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 要解决的问题：KV Cache 太胖
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 结构：存压缩包，用时解压
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-absorb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 关键机制：解码时的"吸收"（absorb）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 为什么压缩了效果不掉
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 代价与四条件取舍
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56-dsv4-mla" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6 插曲：DSV4 没有抛弃 MLA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#57-k3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.7 K3 的两个自家改动
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#58" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.8 参考
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 待讨论
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../%E9%9A%8F%E7%AC%94/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    随笔
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    随笔
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-silu-swiglu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. SiLU 与 SwiGLU 的病根
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1. SiLU 与 SwiGLU 的病根">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#11-silu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.1 SiLU 本体
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-swiglu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 在 SwiGLU 里的位置
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-ox4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 病根：正区无上界 × 乘性结构 = O(‖x‖⁴)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-latentmoe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. LatentMoE：原理与好处
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. LatentMoE：原理与好处">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-moe" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 普通 MoE 的两本账
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 结构
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 好处
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-k3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 K3 落地
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-stable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 代价：四个矩阵连乘 → "Stable" 三件套
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-moe-aux-loss-qb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. MoE 负载均衡：从 aux loss 到 QB
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. MoE 负载均衡：从 aux loss 到 QB">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 传统前向流程（六步）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 负载不均衡问题
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 三代做法对比
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-qb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 QB 推导链
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 工程落地：直方图近似（利用分布可加性）
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-kda" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. KDA 的衰减机制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. KDA 的衰减机制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 状态更新：衰减 + 擦除 + 写入
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 擦除是怎么完成的：方向性对消
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4.2 擦除是怎么完成的：方向性对消">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#d_k2key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        数字例子（d_k=2，key 已归一化）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        要点
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 衰减的三个特征
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 一句话定位
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-mlamulti-head-latent-attention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. MLA（Multi-head Latent Attention）
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="5. MLA（Multi-head Latent Attention）">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#51-kv-cache" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.1 要解决的问题：KV Cache 太胖
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#52" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.2 结构：存压缩包，用时解压
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#53-absorb" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.3 关键机制：解码时的"吸收"（absorb）
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#54" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.4 为什么压缩了效果不掉
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#55" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.5 代价与四条件取舍
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#56-dsv4-mla" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.6 插曲：DSV4 没有抛弃 MLA
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#57-k3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.7 K3 的两个自家改动
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#58" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5.8 参考
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. 待讨论
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <span class="md-tag">LLM</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">MLA</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">MoE</span>
+      
+    
+      
+      
+      
+      
+        <span class="md-tag">线性注意力</span>
+      
+    
+  </nav>
+
+
+
+  <h1>Kimi K3 架构分析</h1>
+
+<blockquote>
+<p>[!INFO] 源文章
+源文章：<a href="https://kexue.fm/archives/11848">科学空间《简单谈谈K3的MoE和Attention》（苏剑林，2026-08-04）</a>。一句话：K3 = KDA + MLA + Stable LatentMoE + AttnRes；优化器仍是 Moonlight 版 Muon（Attention 权重改 Per-Head 优化，动机是正确性而非效果——"每个 Head 本就独立，不应耦合"）。主旋律：<strong>效果、效率、稳定性的协调</strong>。AttnRes 见《Attention Residuals 回忆录》，KDA 见《Kimi Linear》技术报告。</p>
+</blockquote>
+<h2 id="1-silu-swiglu">1. SiLU 与 SwiGLU 的病根</h2>
+<h3 id="11-silu">1.1 SiLU 本体</h3>
+<p><span class="arithmatex">\(SiLU(x) = x \cdot \sigma(x)\)</span>（aka Swish）。三个关键特征：正区 ≈ 恒等（<strong>线性增长、无上界</strong>）；负区小凹坑（x≈-1.28 处最低 ≈ -0.278）后归零；自门控（σ(x) 是 0\~1 软开关）。</p>
+<h3 id="12-swiglu">1.2 在 SwiGLU 里的位置</h3>
+<p><span class="arithmatex">\(SwiGLU(x) = W_3\big(\mathrm{SiLU}(W_1 x) \odot W_2 x\big)\)</span>：门控分支（放行多少）× 线性分支（内容本体）。实证稳赢 GELU/ReLU FFN，是 Llama/Qwen/K2 全系标配。</p>
+<h3 id="13-ox4">1.3 病根：正区无上界 × 乘性结构 = O(‖x‖⁴)</h3>
+<ol>
+<li>门控爆：W1 某一行 w 与输入 x <strong>同向（align）</strong>时 |w·x| 可以非常大，而 SiLU 对大正值 ≈ 恒等，一点不拦；</li>
+<li>线性分支同时爆：W2·x 在<strong>同一通道</strong>也大；</li>
+<li>相乘：两个 O(‖x‖²) 量级的数相乘 → <strong>O(‖x‖⁴)</strong> 级异常值。</li>
+</ol>
+<p>这就是 LLM 里大名鼎鼎的 activation outlier（LLM.int8() / SmoothQuant 一族量化工作收拾的就是它），SwiGLU 的乘性结构是放大器；BF16/FP8 低精度训练下轻则毁统计量、重则 inf。关键认识：<strong>问题不在 SiLU 本身，在于"正区无限幅" + "两分支相乘"的组合</strong>。</p>
+<p><callout emoji="🔗">
+延伸：凡是丢掉 softmax 这把"数值安全锁"的注意力变体（线性注意力等），数值范围都要靠激活函数/限幅自修闸门——K3 的 softcap 与这类硬闸（ReLU6 式截断）是同一问题的两种解法，softcap 平滑且同样界限下效果更好。
+</callout></p>
+<h2 id="2-latentmoe">2. LatentMoE：原理与好处</h2>
+<h3 id="21-moe">2.1 普通 MoE 的两本账</h3>
+<p>每个 expert 是 FFN：d → h → d（K2/K3 的 d=7168），n 个专家选 k 个：</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>每 token 计算</th>
+<th>总参数（知识容量）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>普通 MoE</td>
+<td>k × 2dh</td>
+<td>n × 2dh</td>
+</tr>
+<tr>
+<td>LatentMoE</td>
+<td>2k × (d·h) + 共享投影 ≈ 持平</td>
+<td>2n × dh = n × 2dh（<strong>持平</strong>）</td>
+</tr>
+</tbody>
+</table>
+<h3 id="22">2.2 结构</h3>
+<div class="highlight"><pre><span></span><code>普通 MoE:    d ──→ D ──→ d            （n 选 k，专家全宽）
+LatentMoE:   d ──→ d/2 ──→ D ──→ d/2 ──→ d
+              降维(共享)   2n 选 2k     升维(共享）
+                        （专家在半宽空间干活）
+</code></pre></div>
+<p>降/升维投影为所有 routed expert <strong>共享</strong>，每个专家只在 d/2 宽空间里做 d/2→D→d/2。核心：<strong>2n 个半宽专家 ≈ n 个全宽专家的总参数量</strong>。</p>
+<h3 id="23">2.3 好处</h3>
+<ul>
+<li>知识切分更细：448 个"全科大夫" → 896 个"专科大夫"；</li>
+<li>组合空间指数变大：C(448,8) → C(896,16)——容量没变，表达自由度大增；</li>
+<li>即论文标题《Toward Optimal Accuracy per FLOP and Parameter》：同成本下效果略好。</li>
+</ul>
+<h3 id="24-k3">2.4 K3 落地</h3>
+<p>448选8 → <strong>896 选 16</strong>（稀疏度不变 1/56）；latent 宽度 3584 = 7168/2；<strong>2 个 shared expert 保持全宽</strong>——通用计算不被低维瓶颈卡住："通用的事走大路，专精的事钻小路"。</p>
+<h3 id="25-stable">2.5 代价：四个矩阵连乘 → "Stable" 三件套</h3>
+<div class="highlight"><pre><span></span><code>d ──W_down──→ d/2 ──W1──→ D ──W3──→ d/2 ──W_up──→ d
+     ①矩阵      ②矩阵(门控)  ③矩阵     ④矩阵
+</code></pre></div>
+<p>裸线性链 + 乘性门控，数值极不稳定，异常值顺四个矩阵一路放大。三件保险全是给这条链上的：</p>
+<table>
+<thead>
+<tr>
+<th>保险</th>
+<th>位置</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SiTU-GLU</td>
+<td>专家内部</td>
+<td>softcap 封顶 O(‖x‖⁴) 异常值（β1=4 门控、β2=25 线性；softcap 优于 Hard Clip）</td>
+</tr>
+<tr>
+<td>RMS Norm</td>
+<td><strong>升维前</strong>（W_up 之前）</td>
+<td>消融显示这个位置最本质（最小改动原则只留这一个）；彩蛋：对 valid loss 影响不大，但某些 benchmark 不加会稳定变差——猜测平衡了 Routed/Shared 比例，加了就不用 Scaling Factor</td>
+</tr>
+<tr>
+<td>QB</td>
+<td>路由侧</td>
+<td>896 专家的负载均衡（见第 3 节）</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3-moe-aux-loss-qb">3. MoE 负载均衡：从 aux loss 到 QB</h2>
+<h3 id="31">3.1 传统前向流程（六步）</h3>
+<div class="highlight"><pre><span></span><code>① 打分   s_i = w_i·x                    （router 给 896 专家各打一分）
+② 选择   Top-k over (s_i + b_i)         （b_i 是均衡偏置）
+③ 门控   p_i = σ(s_i) 或 softmax        ← 用【不带 b】的原分数
+④ 分发   token 发给选中专家所在卡        （EP 下 all-to-all 通信）
+⑤ 计算   y_i = E_i(x)
+⑥ 合并   y = Σ p_i·y_i (+ shared expert 输出）
+</code></pre></div>
+<p>关键细节：<strong>bias 只参与"选谁"（②），不参与"给多少权重"（③）</strong>——均衡器只改路由决策，不污染输出语义。</p>
+<h3 id="32">3.2 负载不均衡问题</h3>
+<p>Router 训练会<strong>富者愈富</strong>：早期被多选 → 梯度多 → 更强 → 更被多选。后果：容量浪费 + <strong>EP 下最忙的卡是短板</strong>，全集群等它。</p>
+<h3 id="33">3.3 三代做法对比</h3>
+<table>
+<thead>
+<tr>
+<th>做法</th>
+<th>机制</th>
+<th>干扰主任务</th>
+<th>超参</th>
+<th>大规模（896）表现</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>aux loss（Switch 时代）</td>
+<td>loss 里加均衡项（f_i·P_i）</td>
+<td>有（α 调和）</td>
+<td>α</td>
+<td>一般，软均衡</td>
+</tr>
+<tr>
+<td>Loss-Free（K2/DSv3）</td>
+<td>bias 按 sign 试错：b ← b − u·sign(f̄−1/n)</td>
+<td>无</td>
+<td>步长 u</td>
+<td><strong>不稳</strong>：binary 反馈太粗糙，逐比特挪动会震荡</td>
+</tr>
+<tr>
+<td><strong>QB（K3）</strong></td>
+<td>bias = 余量分布的 k/n 分位数（闭式）</td>
+<td>无</td>
+<td><strong>无</strong></td>
+<td>稳</td>
+</tr>
+</tbody>
+</table>
+<h3 id="34-qb">3.4 QB 推导链</h3>
+<p>均衡的数学目标：<strong>每专家被选概率 = k/n</strong>（896 选 16 → 1/56 ≈ 1.8%）。入选门槛 = top-k 卡的线 = <strong>第 k+1 大的分数</strong> <span class="arithmatex">\(\tau_t\)</span>。专家 i 入选 ⇔：</p>
+<p><span class="arithmatex">\(s_i + b_i &gt; \tau_t \;\Leftrightarrow\; d_t := \tau_t - s_i &lt; b_i\)</span>　（<span class="arithmatex">\(d_t\)</span> = "余量"：离入选还差多少）</p>
+<p>于是被选概率 = P(d_t &lt; b_i)，要它等于 k/n，<strong>bias 直接取余量分布的 k/n 分位数</strong>：</p>
+<p><callout emoji="🎯">
+<span class="arithmatex">\(b_i = \mathrm{Quantile}_{k/n}\big(\{d_t\}\big)\)</span>　——不迭代、不试错、无超参，一步到位。SignSGD 式更新本质上是对这个闭式解的蹩脚随机逼近（每次只挪一个符号位），专家多了必然震荡；QB 是直接把答案算出来。
+</callout></p>
+<h3 id="35">3.5 工程落地：直方图近似（利用分布可加性）</h3>
+<p>分位数是<strong>非线性</strong>运算：不能各卡算各的再平均（局部分位数+全局平均在规模大后失真）；朴素 all-gather 全体分数通信爆炸。K3 的解法：</p>
+<div class="highlight"><pre><span></span><code>① 把余量 d_t 压缩到 [0,1]
+② 本地建直方图：1000 个 bin 的计数向量      ← 非线性消失，只剩计数
+③ 跨机器 / 跨梯度累积：直方图直接相加        ← 分布的可加性！
+④ 从全局直方图 CDF 读出 k/n 分位数 → b_i
+</code></pre></div>
+<ul>
+<li>通信量从"全体分数"降到"每专家 1000 个计数"（896×1000 ≈ 3.5MB，几乎免费）；</li>
+<li>bin 数消融：10000 bin 对比 1000 bin 无额外收益 → <strong>1000 够用</strong>。</li>
+</ul>
+<h2 id="4-kda">4. KDA 的衰减机制</h2>
+<p>https://zhuanlan.zhihu.com/p/2064688483621397412</p>
+<h3 id="41">4.1 状态更新：衰减 + 擦除 + 写入</h3>
+<div class="arithmatex">\[S_t = \mathrm{diag}(\alpha_t)\, S_{t-1}\,(I - \beta_t k_t k_t^\top) + \beta_t k_t v_t^\top\]</div>
+<ul>
+<li><span class="arithmatex">\(\mathrm{diag}(\alpha_t)\)</span>：<strong>衰减（遗忘）</strong>——本文主角；</li>
+<li><span class="arithmatex">\((I - \beta_t k_t k_t^\top)\)</span>：<strong>delta rule 擦除</strong>——按当前 key 方向清掉旧响应（数学上 = 对"当前 key 的回读误差"做一步梯度下降）；</li>
+<li><span class="arithmatex">\(+ \beta_t k_t v_t^\top\)</span>：写入新值。</li>
+</ul>
+<h3 id="42">4.2 擦除是怎么完成的：方向性对消</h3>
+<p>常见疑惑：状态 <span class="arithmatex">\(S = \sum_j k_j v_j^\top\)</span> 只是外积的<strong>累加和</strong>，没有任何条目结构，怎么"擦掉前面写入的"？答案：<strong>沿某方向的旧响应是总和的线性投影，可以直接从总和里读出来、再减掉</strong>——不需要定位到"哪一笔"：</p>
+<p><span class="arithmatex">\(k^\top S = \sum_j (k^\top k_j)\, v_j^\top\)</span>　（所有旧记忆按与 k 的相似度加权的总和，一次矩阵乘）</p>
+<h4 id="d_k2key">数字例子（d_k=2，key 已归一化）</h4>
+<p><strong>① 正交方向互不干扰</strong>：</p>
+<div class="highlight"><pre><span></span><code>t1: k₁=(1,0), v₁=5  → S = [5, 0]ᵀ
+t2: k₂=(0,1), v₂=3  → S = [5, 3]ᵀ
+读 q=(1,0) 得 5，读 q=(0,1) 得 3 —— k₁ᵀk₂=0，各方向互不掺和
+</code></pre></div>
+<p><strong>② 同方向覆写：擦 vs 不擦</strong>：</p>
+<div class="highlight"><pre><span></span><code>t3: k₃=(1,0)（与 t1 同方向），v₃=7
+
+不擦（纯累加）：S = [5,3]ᵀ + (1,0)·7 = [12, 3]ᵀ → 读出 12 = 5+7 混叠 ✗
+
+delta rule：r = k₃ᵀS = 5        （查旧账：这个方向记的是 5）
+            e = 7 − 5 = 2       （差额）
+            S += k₃·2 → [7, 3]ᵀ → 读出恰好 7 ✓
+            旧的 5 被代数上精确抵消
+</code></pre></div>
+<p><strong>③ 部分相似 = 按比例擦</strong>：若 k₃=(cos45°, sin45°)，则 r = 5×0.71 + 3×0.71 = 5.66——两个方向的旧值各被擦掉一部分。不完全正交的记忆会互相"渗透"，这是固定状态记忆的固有串扰。</p>
+<h4 id="_1">要点</h4>
+<ul>
+<li>擦除不是"找到并删除"，是一次<strong>方向性对消</strong>：从求和里减去该方向上的累计响应 <span class="arithmatex">\(k_t (k_t^\top S_{t-1})^\top\)</span>；</li>
+<li><span class="arithmatex">\(k k^\top\)</span> 是该方向的 rank-1 投影：正交方向贡献 ≈0 不受影响；L2Norm 保证 <span class="arithmatex">\(k^\top k = 1\)</span> 时 β=1 <strong>严格清零</strong>（完全同向 = 最新写入独占该方向）；</li>
+<li>成本只有 O(d_k·d_v) 一次乘加，却达到"覆写"语义——这就是 delta rule（Widrow-Hoff LMS）名字的由来：对"当前 key 的回读误差"做一步梯度下降。</li>
+</ul>
+<h3 id="43">4.3 衰减的三个特征</h3>
+<ol>
+<li><strong>逐 key 通道</strong>：<span class="arithmatex">\(\alpha_t \in (0,1)^{d_k}\)</span>，不是标量——记忆板每一列（每个 key 方向）有自己的遗忘速度，即"不同通道的记忆寿命不同"。GDN 只有标量/粗粒度衰减，KDA 把它细化到通道粒度。</li>
+<li><strong>数据依赖</strong>：<span class="arithmatex">\(\alpha_t\)</span> 由当前输入实时生成——模型学会"这段该忘、那段该记"，没有把时间尺度焊死在结构里。</li>
+<li>
+<p><strong>带下界的参数化</strong>（K3 的数值关键）：</p>
+</li>
+<li>
+<p>GDN / Kimi Linear 原版：<span class="arithmatex">\(g_t = -\mathrm{softplus}(\cdot)\)</span>，log-decay 可以趋于 −∞；</p>
+</li>
+</ol>
+<p>配套件：ShortConv（块内短卷积给局部顺序感）+ q/k L2Norm（控制长度）+ 输出门控（读出时按输入调制通道）。</p>
+<h3 id="44">4.4 一句话定位</h3>
+<p>固定状态 = 可结合的线性 attention 的必然结果；压缩记忆必然发生写入碰撞；delta rule 把"覆盖规则"写成最小化回读误差；逐通道衰减让不同记忆有了各自的保质期。KDA 的角色：承担大部分高频、低成本的状态更新，把精确全局检索让给少数 MLA 层（69:24，≈3:1，block 内 3 KDA + 1 Gated MLA，最后一层为 MLA）。</p>
+<h2 id="5-mlamulti-head-latent-attention">5. MLA（Multi-head Latent Attention）</h2>
+<p>MLA 是 DeepSeek-V2 提出的注意力变体，目标：<strong>把 KV Cache 压小一个量级，同时不掉效果</strong>。K3 的 93 层里 24 层用它（Gated MLA），其余 69 层是 KDA（无 cache，固定状态）。</p>
+<h3 id="51-kv-cache">5.1 要解决的问题：KV Cache 太胖</h3>
+<p>softmax attention 每个历史 token 都要存 K、V。以 96 头 × 每头 128 维计：cache = 2×96×128 = 24576 个数 / token / 层，1M context 下是天文数字。MQA/GQA 用"共享头"砍 cache，但表达力受损。</p>
+<h3 id="52">5.2 结构：存压缩包，用时解压</h3>
+<div class="highlight"><pre><span></span><code>写入：x_t ──W_down(共享)──→ c_t ∈ R^512     ← KV 压成一个 latent，【只存它】
+读取：c_t ──W_UK──→ 96 个头的 K（每头 192 维）
+      c_t ──W_UV──→ 96 个头的 V（每头 128 维）
+</code></pre></div>
+<p>cache 对比：MHA 24576 vs MLA 512+64=576（约 1/43；64 是 RoPE 解耦位）。</p>
+<h3 id="53-absorb">5.3 关键机制：解码时的"吸收"（absorb）</h3>
+<p>上投影 W_UK/W_UV 是共享线性层，可挪到 query 侧"吸收"掉：</p>
+<div class="arithmatex">\[\mathrm{score}(q_i, k_j) = q_i^\top W_{UK} c_j = (W_{UK}^\top q_i)^\top c_j\]</div>
+<p>右边括号里对每个 query 只算一次。于是<strong>解码时根本不用解压</strong>——96 个 query 直接对着 512 维共享 latent 打分，<strong>等价于 head_dim=512+ 的 MQA</strong>（所有头共享一个超大 K/V）。注意 RoPE 与低秩压缩不兼容（位置旋转矩阵夹在中间破坏结合律、无法被吸收），所以单独走一个小的解耦分量（64 维、MQA 式全头共享）——这就是"拼接 64 维"的由来。</p>
+<h3 id="54">5.4 为什么压缩了效果不掉</h3>
+<p>《MLA 好在哪里》系列的实验结论：<strong>效果的关键是"无形的 head_dims 变大"</strong>——latent 让每头的有效视野是 512 维共享空间；给定 cache 预算，理论最优是"head_dims = cache 大小、K=V 共享的 MQA"。MLA 两头占：<strong>训练时像 MHA</strong>（好训、效果好），<strong>解码时像大 head_dims MQA</strong>（cache 小、质量保住）。</p>
+<h3 id="55">5.5 代价与四条件取舍</h3>
+<ul>
+<li>MLA 解码已是 head_dims=512+ 的 MQA，算力提前耗光 → 配 MTP（推测解码，计算换速度）吃亏；</li>
+<li>往小改（GQA8 128+128）：效果打不过 MLA；就算打平，cache 也是 MLA 三倍多；</li>
+<li>往大改（MFA 256+256，本质 MQA）：效果追平、cache 不多，但训练成本涨（Scaling Law 吃亏）、Prefill 也变贵（Agent/Coding 每轮 prefill 不短）。</li>
+</ul>
+<p>比 MLA 更好的设计必须同时满足：<strong>①效果 ≥ MLA　②训练+Prefill 成本 ≤ MLA　③KV Cache &lt; MLA　④Decoding 计算 &lt; MLA</strong>——目前没有设计能同时满足，必须取舍。K3 里 KDA 承担大部分层的序列混合，MLA 只留 24 层，其成本问题被"稀释"，所以权衡后仍选 MLA。</p>
+<h3 id="56-dsv4-mla">5.6 插曲：DSV4 没有抛弃 MLA</h3>
+<p>DSV4 看似另起炉灶，实际是把 MLA 的<strong>解码形态</strong>（head_dims=512、K=V 的 MQA）直接当成了训练形态——按理论最优解走到底；代价靠 Sparse（省计算）+ Compress（压 cache）找补。评价："不是抛弃和重造，是传承和升级到另一个极致"。但 "Linear+Full" 路线 vs "Sparse" 路线谁走更远，尚无定论。</p>
+<h3 id="57-k3">5.7 K3 的两个自家改动</h3>
+<ul>
+<li><strong>Gated MLA</strong>：输出加 data-dependent 门控（与 KDA 的输出门呼应——attention 读出再被当前输入调制一遍）；</li>
+<li><strong>NoPE</strong>：去掉 RoPE——因为 KDA 隐含提供了"广义 RoPE"（见第 6 节讨论）；</li>
+<li>工程细节：保留"拼接 64 维 RoPE 槽位"的旧结构而不直接投影 576 维 latent——兼容现有 MLA 基建、计算更省无收益、且 K3 新变量已经够多（"饭要一口一口吃"）。</li>
+</ul>
+<h3 id="58">5.8 参考</h3>
+<ul>
+<li><a href="https://kexue.fm/archives/11848">科学空间《简单谈谈K3的MoE和Attention》（本文主源）</a></li>
+<li><a href="https://zhuanlan.zhihu.com/p/16730036197">知乎·姜富春《彻底理解 MLA（Multi-Head Latent Attention）》——MLA 公式逐行 + 矩阵吸收推导，写得最细</a></li>
+</ul>
+<h2 id="6">6. 待讨论</h2>
+<ul>
+<li>NoPE 与 KDA 的"广义 RoPE"（PaTH 等价形式）</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "navigation.indexes", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
