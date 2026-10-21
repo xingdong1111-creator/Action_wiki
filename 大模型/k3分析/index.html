@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Stable LatentMoE / QB / KDA 衰减与擦除 / MLA，读苏剑林《简单谈谈K3的MoE和Attention》">
+        <meta name="description" content="Stable LatentMoE / QB / KDA 衰减与擦除 / MLA / MTP / NoPE，读苏剑林《简单谈谈K3的MoE和Attention》">
       
       
       
@@ -464,408 +464,7 @@
       <span class="md-nav__icon md-icon"></span>
       目录
     </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#1-silu-swiglu" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. SiLU 与 SwiGLU 的病根
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="1. SiLU 与 SwiGLU 的病根">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#11-silu" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.1 SiLU 本体
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#12-swiglu" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.2 在 SwiGLU 里的位置
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#13-ox4" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.3 病根：正区无上界 × 乘性结构 = O(‖x‖⁴)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-latentmoe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. LatentMoE：原理与好处
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. LatentMoE：原理与好处">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-moe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1 普通 MoE 的两本账
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#22" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.2 结构
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#23" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.3 好处
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#24-k3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.4 K3 落地
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#25-stable" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.5 代价：四个矩阵连乘 → "Stable" 三件套
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-moe-aux-loss-qb" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. MoE 负载均衡：从 aux loss 到 QB
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. MoE 负载均衡：从 aux loss 到 QB">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#31" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.1 传统前向流程（六步）
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#32" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.2 负载不均衡问题
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#33" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.3 三代做法对比
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#34-qb" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.4 QB 推导链
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#35" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.5 工程落地：直方图近似（利用分布可加性）
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-kda" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. KDA 的衰减机制
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4. KDA 的衰减机制">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#41" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.1 状态更新：衰减 + 擦除 + 写入
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#42" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.2 擦除是怎么完成的：方向性对消
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4.2 擦除是怎么完成的：方向性对消">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#d_k2key" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        数字例子（d_k=2，key 已归一化）
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        要点
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#43" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.3 衰减的三个特征
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#44" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.4 一句话定位
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-mlamulti-head-latent-attention" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. MLA（Multi-head Latent Attention）
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="5. MLA（Multi-head Latent Attention）">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#51-kv-cache" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.1 要解决的问题：KV Cache 太胖
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#52" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.2 结构：存压缩包，用时解压
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#53-absorb" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.3 关键机制：解码时的"吸收"（absorb）
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#54" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.4 为什么压缩了效果不掉
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#55" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.5 代价与四条件取舍
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#56-dsv4-mla" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.6 插曲：DSV4 没有抛弃 MLA
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#57-k3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.7 K3 的两个自家改动
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#58" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.8 参考
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#6" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. 待讨论
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix><li class="md-nav__item"><a class="md-nav__link" href="#1-silu-swiglu"><span class="md-ellipsis">1. SiLU 与 SwiGLU 的病根</span></a><nav aria-label="1. SiLU 与 SwiGLU 的病根" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#11-silu"><span class="md-ellipsis">1.1 SiLU 本体</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#12-swiglu"><span class="md-ellipsis">1.2 在 SwiGLU 里的位置</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#13-ox4"><span class="md-ellipsis">1.3 病根：正区无上界 × 乘性结构 = O(‖x‖⁴)</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#2-latentmoe"><span class="md-ellipsis">2. LatentMoE：原理与好处</span></a><nav aria-label="2. LatentMoE：原理与好处" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#21-moe"><span class="md-ellipsis">2.1 普通 MoE 的两本账</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#22"><span class="md-ellipsis">2.2 结构</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#23"><span class="md-ellipsis">2.3 好处</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#24-k3"><span class="md-ellipsis">2.4 K3 落地</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#25-stable"><span class="md-ellipsis">2.5 代价：四个矩阵连乘 → "Stable" 三件套</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#3-moe-aux-loss-qb"><span class="md-ellipsis">3. MoE 负载均衡：从 aux loss 到 QB</span></a><nav aria-label="3. MoE 负载均衡：从 aux loss 到 QB" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#31"><span class="md-ellipsis">3.1 传统前向流程（六步）</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#32"><span class="md-ellipsis">3.2 负载不均衡问题</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#33"><span class="md-ellipsis">3.3 三代做法对比</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#34-qb"><span class="md-ellipsis">3.4 QB 推导链</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#35"><span class="md-ellipsis">3.5 工程落地：直方图近似（利用分布可加性）</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#4-kda"><span class="md-ellipsis">4. KDA 的衰减机制</span></a><nav aria-label="4. KDA 的衰减机制" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#41"><span class="md-ellipsis">4.1 状态更新：衰减 + 擦除 + 写入</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#42"><span class="md-ellipsis">4.2 擦除是怎么完成的：方向性对消</span></a><nav aria-label="4.2 擦除是怎么完成的：方向性对消" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#d_k2key"><span class="md-ellipsis">数字例子（d_k=2，key 已归一化）</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#_1"><span class="md-ellipsis">要点</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#43"><span class="md-ellipsis">4.3 衰减的三个特征</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#44"><span class="md-ellipsis">4.4 一句话定位</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#5-mlamulti-head-latent-attention"><span class="md-ellipsis">5. MLA（Multi-head Latent Attention）</span></a><nav aria-label="5. MLA（Multi-head Latent Attention）" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#51-kv-cache"><span class="md-ellipsis">5.1 要解决的问题：KV Cache 太胖</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#52"><span class="md-ellipsis">5.2 结构：存压缩包，用时解压</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#53-absorb"><span class="md-ellipsis">5.3 关键机制：解码时的"吸收"（absorb）</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#54"><span class="md-ellipsis">5.4 为什么压缩了效果不掉</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#55"><span class="md-ellipsis">5.5 代价与四条件取舍</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#56-dsv4-mla"><span class="md-ellipsis">5.6 插曲：DSV4 没有抛弃 MLA</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#57-k3"><span class="md-ellipsis">5.7 K3 的两个自家改动</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#58"><span class="md-ellipsis">5.8 参考</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#6-mtpmulti-token-prediction"><span class="md-ellipsis">6. MTP（Multi-Token Prediction）</span></a><nav aria-label="6. MTP（Multi-Token Prediction）" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#61-mtp-decoder-layer"><span class="md-ellipsis">6.1 结构：一层 MTP = 一个完整 decoder layer</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#62"><span class="md-ellipsis">6.2 输入输出</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#63-teacher-forcing"><span class="md-ellipsis">6.3 训练：teacher forcing + 错位裁剪</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#64"><span class="md-ellipsis">6.4 推理：普通生成直接丢，投机解码才加速</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#65"><span class="md-ellipsis">6.5 为什么能快 / 什么时候不快</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#66"><span class="md-ellipsis">6.6 常见误解</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#7-nopek3-rope"><span class="md-ellipsis">7. NoPE：K3 为什么可以去掉 RoPE</span></a><nav aria-label="7. NoPE：K3 为什么可以去掉 RoPE" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#71-mla-rope"><span class="md-ellipsis">7.1 纯 MLA 为什么需要 RoPE</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#72-kda"><span class="md-ellipsis">7.2 KDA 如何提供隐式位置</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#73-ropepath"><span class="md-ellipsis">7.3 广义 RoPE：PaTH 等价形式</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#74-64-rope"><span class="md-ellipsis">7.4 为什么还保留 64 维 RoPE 槽位</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#75"><span class="md-ellipsis">7.5 小结</span></a></li></ul></nav></li></ul>
   
 </nav>
       
@@ -970,408 +569,7 @@
       <span class="md-nav__icon md-icon"></span>
       目录
     </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#1-silu-swiglu" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. SiLU 与 SwiGLU 的病根
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="1. SiLU 与 SwiGLU 的病根">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#11-silu" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.1 SiLU 本体
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#12-swiglu" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.2 在 SwiGLU 里的位置
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#13-ox4" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1.3 病根：正区无上界 × 乘性结构 = O(‖x‖⁴)
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-latentmoe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. LatentMoE：原理与好处
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. LatentMoE：原理与好处">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-moe" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1 普通 MoE 的两本账
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#22" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.2 结构
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#23" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.3 好处
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#24-k3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.4 K3 落地
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#25-stable" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.5 代价：四个矩阵连乘 → "Stable" 三件套
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-moe-aux-loss-qb" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. MoE 负载均衡：从 aux loss 到 QB
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. MoE 负载均衡：从 aux loss 到 QB">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#31" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.1 传统前向流程（六步）
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#32" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.2 负载不均衡问题
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#33" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.3 三代做法对比
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#34-qb" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.4 QB 推导链
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#35" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3.5 工程落地：直方图近似（利用分布可加性）
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-kda" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. KDA 的衰减机制
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4. KDA 的衰减机制">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#41" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.1 状态更新：衰减 + 擦除 + 写入
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#42" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.2 擦除是怎么完成的：方向性对消
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4.2 擦除是怎么完成的：方向性对消">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#d_k2key" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        数字例子（d_k=2，key 已归一化）
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#_1" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        要点
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#43" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.3 衰减的三个特征
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#44" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.4 一句话定位
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-mlamulti-head-latent-attention" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. MLA（Multi-head Latent Attention）
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="5. MLA（Multi-head Latent Attention）">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#51-kv-cache" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.1 要解决的问题：KV Cache 太胖
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#52" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.2 结构：存压缩包，用时解压
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#53-absorb" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.3 关键机制：解码时的"吸收"（absorb）
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#54" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.4 为什么压缩了效果不掉
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#55" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.5 代价与四条件取舍
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#56-dsv4-mla" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.6 插曲：DSV4 没有抛弃 MLA
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#57-k3" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.7 K3 的两个自家改动
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#58" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5.8 参考
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#6" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. 待讨论
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix><li class="md-nav__item"><a class="md-nav__link" href="#1-silu-swiglu"><span class="md-ellipsis">1. SiLU 与 SwiGLU 的病根</span></a><nav aria-label="1. SiLU 与 SwiGLU 的病根" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#11-silu"><span class="md-ellipsis">1.1 SiLU 本体</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#12-swiglu"><span class="md-ellipsis">1.2 在 SwiGLU 里的位置</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#13-ox4"><span class="md-ellipsis">1.3 病根：正区无上界 × 乘性结构 = O(‖x‖⁴)</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#2-latentmoe"><span class="md-ellipsis">2. LatentMoE：原理与好处</span></a><nav aria-label="2. LatentMoE：原理与好处" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#21-moe"><span class="md-ellipsis">2.1 普通 MoE 的两本账</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#22"><span class="md-ellipsis">2.2 结构</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#23"><span class="md-ellipsis">2.3 好处</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#24-k3"><span class="md-ellipsis">2.4 K3 落地</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#25-stable"><span class="md-ellipsis">2.5 代价：四个矩阵连乘 → "Stable" 三件套</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#3-moe-aux-loss-qb"><span class="md-ellipsis">3. MoE 负载均衡：从 aux loss 到 QB</span></a><nav aria-label="3. MoE 负载均衡：从 aux loss 到 QB" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#31"><span class="md-ellipsis">3.1 传统前向流程（六步）</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#32"><span class="md-ellipsis">3.2 负载不均衡问题</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#33"><span class="md-ellipsis">3.3 三代做法对比</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#34-qb"><span class="md-ellipsis">3.4 QB 推导链</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#35"><span class="md-ellipsis">3.5 工程落地：直方图近似（利用分布可加性）</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#4-kda"><span class="md-ellipsis">4. KDA 的衰减机制</span></a><nav aria-label="4. KDA 的衰减机制" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#41"><span class="md-ellipsis">4.1 状态更新：衰减 + 擦除 + 写入</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#42"><span class="md-ellipsis">4.2 擦除是怎么完成的：方向性对消</span></a><nav aria-label="4.2 擦除是怎么完成的：方向性对消" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#d_k2key"><span class="md-ellipsis">数字例子（d_k=2，key 已归一化）</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#_1"><span class="md-ellipsis">要点</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#43"><span class="md-ellipsis">4.3 衰减的三个特征</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#44"><span class="md-ellipsis">4.4 一句话定位</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#5-mlamulti-head-latent-attention"><span class="md-ellipsis">5. MLA（Multi-head Latent Attention）</span></a><nav aria-label="5. MLA（Multi-head Latent Attention）" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#51-kv-cache"><span class="md-ellipsis">5.1 要解决的问题：KV Cache 太胖</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#52"><span class="md-ellipsis">5.2 结构：存压缩包，用时解压</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#53-absorb"><span class="md-ellipsis">5.3 关键机制：解码时的"吸收"（absorb）</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#54"><span class="md-ellipsis">5.4 为什么压缩了效果不掉</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#55"><span class="md-ellipsis">5.5 代价与四条件取舍</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#56-dsv4-mla"><span class="md-ellipsis">5.6 插曲：DSV4 没有抛弃 MLA</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#57-k3"><span class="md-ellipsis">5.7 K3 的两个自家改动</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#58"><span class="md-ellipsis">5.8 参考</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#6-mtpmulti-token-prediction"><span class="md-ellipsis">6. MTP（Multi-Token Prediction）</span></a><nav aria-label="6. MTP（Multi-Token Prediction）" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#61-mtp-decoder-layer"><span class="md-ellipsis">6.1 结构：一层 MTP = 一个完整 decoder layer</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#62"><span class="md-ellipsis">6.2 输入输出</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#63-teacher-forcing"><span class="md-ellipsis">6.3 训练：teacher forcing + 错位裁剪</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#64"><span class="md-ellipsis">6.4 推理：普通生成直接丢，投机解码才加速</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#65"><span class="md-ellipsis">6.5 为什么能快 / 什么时候不快</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#66"><span class="md-ellipsis">6.6 常见误解</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#7-nopek3-rope"><span class="md-ellipsis">7. NoPE：K3 为什么可以去掉 RoPE</span></a><nav aria-label="7. NoPE：K3 为什么可以去掉 RoPE" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#71-mla-rope"><span class="md-ellipsis">7.1 纯 MLA 为什么需要 RoPE</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#72-kda"><span class="md-ellipsis">7.2 KDA 如何提供隐式位置</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#73-ropepath"><span class="md-ellipsis">7.3 广义 RoPE：PaTH 等价形式</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#74-64-rope"><span class="md-ellipsis">7.4 为什么还保留 64 维 RoPE 槽位</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#75"><span class="md-ellipsis">7.5 小结</span></a></li></ul></nav></li></ul>
   
 </nav>
                   </div>
@@ -1423,8 +621,7 @@
   <h1>Kimi K3 架构分析</h1>
 
 <blockquote>
-<p>[!INFO] 源文章
-源文章：<a href="https://kexue.fm/archives/11848">科学空间《简单谈谈K3的MoE和Attention》（苏剑林，2026-08-04）</a>。一句话：K3 = KDA + MLA + Stable LatentMoE + AttnRes；优化器仍是 Moonlight 版 Muon（Attention 权重改 Per-Head 优化，动机是正确性而非效果——"每个 Head 本就独立，不应耦合"）。主旋律：<strong>效果、效率、稳定性的协调</strong>。AttnRes 见《Attention Residuals 回忆录》，KDA 见《Kimi Linear》技术报告。</p>
+<p>源文章：<a href="https://kexue.fm/archives/11848">科学空间《简单谈谈K3的MoE和Attention》（苏剑林，2026-08-04）</a>。一句话：K3 = KDA + MLA + Stable LatentMoE + AttnRes；优化器仍是 Moonlight 版 Muon（Attention 权重改 Per-Head 优化，动机是正确性而非效果——"每个 Head 本就独立，不应耦合"）。主旋律：<strong>效果、效率、稳定性的协调</strong>。AttnRes 见《Attention Residuals 回忆录》，KDA 见《Kimi Linear》技术报告。</p>
 </blockquote>
 <h2 id="1-silu-swiglu">1. SiLU 与 SwiGLU 的病根</h2>
 <h3 id="11-silu">1.1 SiLU 本体</h3>
@@ -1438,9 +635,9 @@
 <li>相乘：两个 O(‖x‖²) 量级的数相乘 → <strong>O(‖x‖⁴)</strong> 级异常值。</li>
 </ol>
 <p>这就是 LLM 里大名鼎鼎的 activation outlier（LLM.int8() / SmoothQuant 一族量化工作收拾的就是它），SwiGLU 的乘性结构是放大器；BF16/FP8 低精度训练下轻则毁统计量、重则 inf。关键认识：<strong>问题不在 SiLU 本身，在于"正区无限幅" + "两分支相乘"的组合</strong>。</p>
-<p><callout emoji="🔗">
-延伸：凡是丢掉 softmax 这把"数值安全锁"的注意力变体（线性注意力等），数值范围都要靠激活函数/限幅自修闸门——K3 的 softcap 与这类硬闸（ReLU6 式截断）是同一问题的两种解法，softcap 平滑且同样界限下效果更好。
-</callout></p>
+<blockquote>
+<p>延伸：凡是丢掉 softmax 这把"数值安全锁"的注意力变体（线性注意力等），数值范围都要靠激活函数/限幅自修闸门——K3 的 softcap 与这类硬闸（ReLU6 式截断）是同一问题的两种解法，softcap 平滑且同样界限下效果更好。</p>
+</blockquote>
 <h2 id="2-latentmoe">2. LatentMoE：原理与好处</h2>
 <h3 id="21-moe">2.1 普通 MoE 的两本账</h3>
 <p>每个 expert 是 FFN：d → h → d（K2/K3 的 d=7168），n 个专家选 k 个：</p>
@@ -1466,11 +663,11 @@
 </tbody>
 </table>
 <h3 id="22">2.2 结构</h3>
-<div class="highlight"><pre><span></span><code>普通 MoE:    d ──→ D ──→ d            （n 选 k，专家全宽）
+<pre><code class="language-text">普通 MoE:    d ──→ D ──→ d            （n 选 k，专家全宽）
 LatentMoE:   d ──→ d/2 ──→ D ──→ d/2 ──→ d
               降维(共享)   2n 选 2k     升维(共享）
                         （专家在半宽空间干活）
-</code></pre></div>
+</code></pre>
 <p>降/升维投影为所有 routed expert <strong>共享</strong>，每个专家只在 d/2 宽空间里做 d/2→D→d/2。核心：<strong>2n 个半宽专家 ≈ n 个全宽专家的总参数量</strong>。</p>
 <h3 id="23">2.3 好处</h3>
 <ul>
@@ -1481,9 +678,9 @@ LatentMoE:   d ──→ d/2 ──→ D ──→ d/2 ──→ d
 <h3 id="24-k3">2.4 K3 落地</h3>
 <p>448选8 → <strong>896 选 16</strong>（稀疏度不变 1/56）；latent 宽度 3584 = 7168/2；<strong>2 个 shared expert 保持全宽</strong>——通用计算不被低维瓶颈卡住："通用的事走大路，专精的事钻小路"。</p>
 <h3 id="25-stable">2.5 代价：四个矩阵连乘 → "Stable" 三件套</h3>
-<div class="highlight"><pre><span></span><code>d ──W_down──→ d/2 ──W1──→ D ──W3──→ d/2 ──W_up──→ d
+<pre><code class="language-text">d ──W_down──→ d/2 ──W1──→ D ──W3──→ d/2 ──W_up──→ d
      ①矩阵      ②矩阵(门控)  ③矩阵     ④矩阵
-</code></pre></div>
+</code></pre>
 <p>裸线性链 + 乘性门控，数值极不稳定，异常值顺四个矩阵一路放大。三件保险全是给这条链上的：</p>
 <table>
 <thead>
@@ -1513,13 +710,13 @@ LatentMoE:   d ──→ d/2 ──→ D ──→ d/2 ──→ d
 </table>
 <h2 id="3-moe-aux-loss-qb">3. MoE 负载均衡：从 aux loss 到 QB</h2>
 <h3 id="31">3.1 传统前向流程（六步）</h3>
-<div class="highlight"><pre><span></span><code>① 打分   s_i = w_i·x                    （router 给 896 专家各打一分）
+<pre><code class="language-text">① 打分   s_i = w_i·x                    （router 给 896 专家各打一分）
 ② 选择   Top-k over (s_i + b_i)         （b_i 是均衡偏置）
 ③ 门控   p_i = σ(s_i) 或 softmax        ← 用【不带 b】的原分数
 ④ 分发   token 发给选中专家所在卡        （EP 下 all-to-all 通信）
 ⑤ 计算   y_i = E_i(x)
 ⑥ 合并   y = Σ p_i·y_i (+ shared expert 输出）
-</code></pre></div>
+</code></pre>
 <p>关键细节：<strong>bias 只参与"选谁"（②），不参与"给多少权重"（③）</strong>——均衡器只改路由决策，不污染输出语义。</p>
 <h3 id="32">3.2 负载不均衡问题</h3>
 <p>Router 训练会<strong>富者愈富</strong>：早期被多选 → 梯度多 → 更强 → 更被多选。后果：容量浪费 + <strong>EP 下最忙的卡是短板</strong>，全集群等它。</p>
@@ -1562,16 +759,16 @@ LatentMoE:   d ──→ d/2 ──→ D ──→ d/2 ──→ d
 <p>均衡的数学目标：<strong>每专家被选概率 = k/n</strong>（896 选 16 → 1/56 ≈ 1.8%）。入选门槛 = top-k 卡的线 = <strong>第 k+1 大的分数</strong> <span class="arithmatex">\(\tau_t\)</span>。专家 i 入选 ⇔：</p>
 <p><span class="arithmatex">\(s_i + b_i &gt; \tau_t \;\Leftrightarrow\; d_t := \tau_t - s_i &lt; b_i\)</span>　（<span class="arithmatex">\(d_t\)</span> = "余量"：离入选还差多少）</p>
 <p>于是被选概率 = P(d_t &lt; b_i)，要它等于 k/n，<strong>bias 直接取余量分布的 k/n 分位数</strong>：</p>
-<p><callout emoji="🎯">
-<span class="arithmatex">\(b_i = \mathrm{Quantile}_{k/n}\big(\{d_t\}\big)\)</span>　——不迭代、不试错、无超参，一步到位。SignSGD 式更新本质上是对这个闭式解的蹩脚随机逼近（每次只挪一个符号位），专家多了必然震荡；QB 是直接把答案算出来。
-</callout></p>
+<blockquote>
+<p><span class="arithmatex">\(b_i = \mathrm{Quantile}_{k/n}\big(\{d_t\}\big)\)</span>　——不迭代、不试错、无超参，一步到位。SignSGD 式更新本质上是对这个闭式解的蹩脚随机逼近（每次只挪一个符号位），专家多了必然震荡；QB 是直接把答案算出来。</p>
+</blockquote>
 <h3 id="35">3.5 工程落地：直方图近似（利用分布可加性）</h3>
 <p>分位数是<strong>非线性</strong>运算：不能各卡算各的再平均（局部分位数+全局平均在规模大后失真）；朴素 all-gather 全体分数通信爆炸。K3 的解法：</p>
-<div class="highlight"><pre><span></span><code>① 把余量 d_t 压缩到 [0,1]
+<pre><code class="language-text">① 把余量 d_t 压缩到 [0,1]
 ② 本地建直方图：1000 个 bin 的计数向量      ← 非线性消失，只剩计数
 ③ 跨机器 / 跨梯度累积：直方图直接相加        ← 分布的可加性！
 ④ 从全局直方图 CDF 读出 k/n 分位数 → b_i
-</code></pre></div>
+</code></pre>
 <ul>
 <li>通信量从"全体分数"降到"每专家 1000 个计数"（896×1000 ≈ 3.5MB，几乎免费）；</li>
 <li>bin 数消融：10000 bin 对比 1000 bin 无额外收益 → <strong>1000 够用</strong>。</li>
@@ -1590,12 +787,12 @@ LatentMoE:   d ──→ d/2 ──→ D ──→ d/2 ──→ d
 <p><span class="arithmatex">\(k^\top S = \sum_j (k^\top k_j)\, v_j^\top\)</span>　（所有旧记忆按与 k 的相似度加权的总和，一次矩阵乘）</p>
 <h4 id="d_k2key">数字例子（d_k=2，key 已归一化）</h4>
 <p><strong>① 正交方向互不干扰</strong>：</p>
-<div class="highlight"><pre><span></span><code>t1: k₁=(1,0), v₁=5  → S = [5, 0]ᵀ
+<pre><code class="language-text">t1: k₁=(1,0), v₁=5  → S = [5, 0]ᵀ
 t2: k₂=(0,1), v₂=3  → S = [5, 3]ᵀ
 读 q=(1,0) 得 5，读 q=(0,1) 得 3 —— k₁ᵀk₂=0，各方向互不掺和
-</code></pre></div>
+</code></pre>
 <p><strong>② 同方向覆写：擦 vs 不擦</strong>：</p>
-<div class="highlight"><pre><span></span><code>t3: k₃=(1,0)（与 t1 同方向），v₃=7
+<pre><code class="language-text">t3: k₃=(1,0)（与 t1 同方向），v₃=7
 
 不擦（纯累加）：S = [5,3]ᵀ + (1,0)·7 = [12, 3]ᵀ → 读出 12 = 5+7 混叠 ✗
 
@@ -1603,7 +800,7 @@ delta rule：r = k₃ᵀS = 5        （查旧账：这个方向记的是 5）
             e = 7 − 5 = 2       （差额）
             S += k₃·2 → [7, 3]ᵀ → 读出恰好 7 ✓
             旧的 5 被代数上精确抵消
-</code></pre></div>
+</code></pre>
 <p><strong>③ 部分相似 = 按比例擦</strong>：若 k₃=(cos45°, sin45°)，则 r = 5×0.71 + 3×0.71 = 5.66——两个方向的旧值各被擦掉一部分。不完全正交的记忆会互相"渗透"，这是固定状态记忆的固有串扰。</p>
 <h4 id="_1">要点</h4>
 <ul>
@@ -1615,25 +812,66 @@ delta rule：r = k₃ᵀS = 5        （查旧账：这个方向记的是 5）
 <ol>
 <li><strong>逐 key 通道</strong>：<span class="arithmatex">\(\alpha_t \in (0,1)^{d_k}\)</span>，不是标量——记忆板每一列（每个 key 方向）有自己的遗忘速度，即"不同通道的记忆寿命不同"。GDN 只有标量/粗粒度衰减，KDA 把它细化到通道粒度。</li>
 <li><strong>数据依赖</strong>：<span class="arithmatex">\(\alpha_t\)</span> 由当前输入实时生成——模型学会"这段该忘、那段该记"，没有把时间尺度焊死在结构里。</li>
-<li>
-<p><strong>带下界的参数化</strong>（K3 的数值关键）：</p>
-</li>
-<li>
-<p>GDN / Kimi Linear 原版：<span class="arithmatex">\(g_t = -\mathrm{softplus}(\cdot)\)</span>，log-decay 可以趋于 −∞；</p>
-</li>
+<li><strong>带下界的参数化</strong>（K3 的数值关键）：</li>
 </ol>
+<ul>
+<li>GDN / Kimi Linear 原版：<span class="arithmatex">\(g_t = -\mathrm{softplus}(\cdot)\)</span>，log-decay 可以趋于 −∞；</li>
+</ul>
 <p>配套件：ShortConv（块内短卷积给局部顺序感）+ q/k L2Norm（控制长度）+ 输出门控（读出时按输入调制通道）。</p>
 <h3 id="44">4.4 一句话定位</h3>
 <p>固定状态 = 可结合的线性 attention 的必然结果；压缩记忆必然发生写入碰撞；delta rule 把"覆盖规则"写成最小化回读误差；逐通道衰减让不同记忆有了各自的保质期。KDA 的角色：承担大部分高频、低成本的状态更新，把精确全局检索让给少数 MLA 层（69:24，≈3:1，block 内 3 KDA + 1 Gated MLA，最后一层为 MLA）。</p>
 <h2 id="5-mlamulti-head-latent-attention">5. MLA（Multi-head Latent Attention）</h2>
 <p>MLA 是 DeepSeek-V2 提出的注意力变体，目标：<strong>把 KV Cache 压小一个量级，同时不掉效果</strong>。K3 的 93 层里 24 层用它（Gated MLA），其余 69 层是 KDA（无 cache，固定状态）。</p>
+<p><strong>先厘清：MHA / MQA / GQA / MLA</strong>——这几类都是 <strong>softmax attention</strong> 的 KV Cache 变体，目标都是在“效果”和“cache”之间取舍；KDA 是另一条线（线性 attention，固定状态，没有 KV Cache），不在这一组里。</p>
+<table>
+<thead>
+<tr>
+<th>变体</th>
+<th>K/V 共享方式</th>
+<th>每 token 每层 cache</th>
+<th>特点</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>MHA</td>
+<td>每个 head 独立一份 K/V</td>
+<td>2·n_h·d_h</td>
+<td>效果最好，cache 最大</td>
+</tr>
+<tr>
+<td>MQA</td>
+<td>所有 head 共享同一份 K/V</td>
+<td>2·d_h</td>
+<td>cache 最小，表达力受损</td>
+</tr>
+<tr>
+<td>GQA</td>
+<td>每组 head 共享一份 K/V</td>
+<td>2·n_g·d_h</td>
+<td>MHA/MQA 折中；n_g=n_h 退化为 MHA，n_g=1 退化为 MQA</td>
+</tr>
+<tr>
+<td>MLA</td>
+<td>存压缩 latent <span class="arithmatex">\(C^{KV}\)</span> + 解耦 RoPE key <span class="arithmatex">\(K^R\)</span></td>
+<td><span class="arithmatex">\(d_c + d_h^R\)</span>（如 512+64=576）</td>
+<td>训练像 MHA，解码吸收后像大 head_dim MQA；cache 小、效果保住</td>
+</tr>
+</tbody>
+</table>
+<p>记 <span class="arithmatex">\(n_h\)</span> 为 head 数、<span class="arithmatex">\(n_g\)</span> 为 group 数、<span class="arithmatex">\(d_h\)</span> 为每头维度；MLA 的 <span class="arithmatex">\(d_c\)</span> 是 KV latent 维度，<span class="arithmatex">\(d_h^R\)</span> 是 RoPE 解耦维度。</p>
+<ul>
+<li>MQA/GQA 是“共享头”砍 cache：共享得越狠，cache 越小，但每个 head 能看的 K/V 越单一，表达力越弱。</li>
+<li>MLA 是“低秩压缩 + 解耦 RoPE”砍 cache：只存 <span class="arithmatex">\(C^{KV}\)</span>（压缩后的 KV latent）和 <span class="arithmatex">\(K^R\)</span>（位置编码用的解耦 key）；解码时 <span class="arithmatex">\(W_{UK}/W_{UV}\)</span> 吸收到 query 侧，不用显式解压，等价于大 head_dim 的 MQA。</li>
+<li>一句话：MHA → MQA/GQA 是“共享”，MLA 是“压缩 + 吸收”；前者省 cache 靠牺牲 head 多样性，后者靠低秩 latent 把 cache 压小、再用大 head_dim 把效果补回来。具体推导见 5.1–5.3。</li>
+</ul>
 <h3 id="51-kv-cache">5.1 要解决的问题：KV Cache 太胖</h3>
 <p>softmax attention 每个历史 token 都要存 K、V。以 96 头 × 每头 128 维计：cache = 2×96×128 = 24576 个数 / token / 层，1M context 下是天文数字。MQA/GQA 用"共享头"砍 cache，但表达力受损。</p>
 <h3 id="52">5.2 结构：存压缩包，用时解压</h3>
-<div class="highlight"><pre><span></span><code>写入：x_t ──W_down(共享)──→ c_t ∈ R^512     ← KV 压成一个 latent，【只存它】
+<pre><code class="language-text">写入：x_t ──W_down(共享)──→ c_t ∈ R^512     ← KV 压成一个 latent，【只存它】
 读取：c_t ──W_UK──→ 96 个头的 K（每头 192 维）
       c_t ──W_UV──→ 96 个头的 V（每头 128 维）
-</code></pre></div>
+</code></pre>
 <p>cache 对比：MHA 24576 vs MLA 512+64=576（约 1/43；64 是 RoPE 解耦位）。</p>
 <h3 id="53-absorb">5.3 关键机制：解码时的"吸收"（absorb）</h3>
 <p>上投影 W_UK/W_UV 是共享线性层，可挪到 query 侧"吸收"掉：</p>
@@ -1653,7 +891,7 @@ delta rule：r = k₃ᵀS = 5        （查旧账：这个方向记的是 5）
 <h3 id="57-k3">5.7 K3 的两个自家改动</h3>
 <ul>
 <li><strong>Gated MLA</strong>：输出加 data-dependent 门控（与 KDA 的输出门呼应——attention 读出再被当前输入调制一遍）；</li>
-<li><strong>NoPE</strong>：去掉 RoPE——因为 KDA 隐含提供了"广义 RoPE"（见第 6 节讨论）；</li>
+<li><strong>NoPE</strong>：去掉 RoPE——因为 KDA 隐含提供了"广义 RoPE"（见第 7 节讨论）；</li>
 <li>工程细节：保留"拼接 64 维 RoPE 槽位"的旧结构而不直接投影 576 维 latent——兼容现有 MLA 基建、计算更省无收益、且 K3 新变量已经够多（"饭要一口一口吃"）。</li>
 </ul>
 <h3 id="58">5.8 参考</h3>
@@ -1661,27 +899,83 @@ delta rule：r = k₃ᵀS = 5        （查旧账：这个方向记的是 5）
 <li><a href="https://kexue.fm/archives/11848">科学空间《简单谈谈K3的MoE和Attention》（本文主源）</a></li>
 <li><a href="https://zhuanlan.zhihu.com/p/16730036197">知乎·姜富春《彻底理解 MLA（Multi-Head Latent Attention）》——MLA 公式逐行 + 矩阵吸收推导，写得最细</a></li>
 </ul>
-<h2 id="6">6. 待讨论</h2>
+<h2 id="6-mtpmulti-token-prediction">6. MTP（Multi-Token Prediction）</h2>
+<p>DeepSeek-V3 的 MTP：主 head 仍预测 <span class="arithmatex">\(t_{i+1}\)</span>；MTP 在同一个位置 i 上额外挂 D 个<strong>串行</strong>预测深度，用共享输出头预测 <span class="arithmatex">\(t_{i+2}\)</span>、<span class="arithmatex">\(t_{i+3}\)</span>、…、<span class="arithmatex">\(t_{i+D+1}\)</span>。V3 实际取 D=1，只多预测一个 token；推理时可整体丢弃，也可当 draft 做投机解码。</p>
+<h3 id="61-mtp-decoder-layer">6.1 结构：一层 MTP = 一个完整 decoder layer</h3>
 <ul>
-<li>NoPE 与 KDA 的"广义 RoPE"（PaTH 等价形式）</li>
+<li>每个 depth k 有独立的 <span class="arithmatex">\(M_k\)</span>（2d→d 线性投影）和 <span class="arithmatex">\(\mathrm{TRM}_k\)</span>（一层 Transformer block）。V3 这一层是完整 MoE decoder layer，不是小 MLP；权重文档：MTP 模块约 11.5B unique 参数、1.5B 激活（含 0.9B 共享输出头）。</li>
+<li>共享主模型的 embedding 和 output head；不共享 MTP block 自身。</li>
+<li>D=1：主模型 61 层 + MTP 1 层（layer 61）；D=3：3 个独立的 1 层 block 串行，不是一个 block 有 3 层。</li>
 </ul>
-
-
-
-
-
-
-
-  
-  
-
-
-
-
-
-
-                
-              </article>
+<h3 id="62">6.2 输入输出</h3>
+<p>对位置 i、深度 k：</p>
+<div class="arithmatex">\[h_i^{\prime k} = M_k [\mathrm{RMSNorm}(h_i^{k-1}); \mathrm{RMSNorm}(\mathrm{Emb}(t_{i+k}))]\]</div>
+<div class="arithmatex">\[h_i^k = \mathrm{TRM}_k(h_i^{\prime k}),\quad P_{i+k+1}^k = \mathrm{OutHead}(h_i^k)\]</div>
+<p>关键：<strong>不是用 h_B，而是用 Emb(B)</strong>。主模型只在 k=1 时提供 <span class="arithmatex">\(h_A^0\)</span>；k≥2 的 h 由上一层 MTP block 产生，不需要重跑主模型。</p>
+<pre><code class="language-text">A 位置（D=3）：
+主 head: h_A^0                    → B
+MTP-1:   h_A^0 + Emb(B)  → h_A^1  → C
+MTP-2:   h_A^1 + Emb(C)  → h_A^2  → D
+MTP-3:   h_A^2 + Emb(D)  → h_A^3  → E
+</code></pre>
+<p>“同一个 h 拼不同 embedding”是并行 head 的做法，不是 DeepSeek 的 MTP；DeepSeek 的 h 逐层更新，保留 causal chain。</p>
+<h3 id="63-teacher-forcing">6.3 训练：teacher forcing + 错位裁剪</h3>
+<ul>
+<li>训练时每层喂真实未来 token 的 embedding（teacher forcing），不是上一层的预测。</li>
+<li>损失：<span class="arithmatex">\(\mathcal{L} = \mathcal{L}_{\text{main}} + \frac{\lambda}{D}\sum_{k=1}^{D}\mathcal{L}_{\text{MTP}}^k\)</span>；V3 前 10T token 用 λ=0.3，后 4.8T 降到 0.1。</li>
+<li>在长度 T 的原始序列上，MTP-k 的有效位置到 <span class="arithmatex">\(t_{T-k}\)</span>，标签从 <span class="arithmatex">\(t_{k+2}\)</span> 开始（末尾加 EOS 时可到 EOS）；再往后直接 mask。补 EOS 只是让最后一个有效位置多一个标签，序列最后一个位置仍然没有下一个 token embedding，仍要裁掉。</li>
+<li>packed 序列要在文档边界截断 MTP 窗口，不能拿下一段的第一个 token 当上一段的 teacher。</li>
+</ul>
+<pre><code class="language-text">T=10，末尾 t11=EOS：
+主模型:  位置 t1..t10   label t2..t11
+MTP-1:  位置 t1..t9    label t3..t11
+MTP-2:  位置 t1..t8    label t4..t11
+MTP-3:  位置 t1..t7    label t5..t11
+</code></pre>
+<h3 id="64">6.4 推理：普通生成直接丢，投机解码才加速</h3>
+<ul>
+<li>普通推理丢弃 MTP，主模型行为和原来一样，不增加计算。</li>
+<li>投机解码：主模型先出 B → MTP-1 用 Emb(B) draft C → MTP-2 用 Emb(C*) draft D → MTP-3 用 Emb(D*) draft E；主模型一次 forward 并行验证 B、C*、D*、E*，接受最长正确前缀。</li>
+<li>训练是 teacher forcing，推理是 free-running：C*、D* 是模型自己猜的，猜错会往后传，所以 depth 越深接受率越低。</li>
+<li>V3 D=1：第二 token 接受率 85–90%，实测 1.8× TPS。</li>
+</ul>
+<h3 id="65">6.5 为什么能快 / 什么时候不快</h3>
+<ul>
+<li>主模型逐 token decode 是 memory-bound；一次 forward 验证 K 个 draft，权重只加载一次，把 K 次访存合并成 1 次。</li>
+<li>D=1：1 次主 forward 最多换 2 个 token（1 个 draft + 1 个 bonus），理想 2×，实测 1.8×。D=3 理想 4×（3 个 draft + 1 个 bonus），但 draft 接受率衰减、每层 MoE 权重和加载成本都要算进去。</li>
+<li>MTP 层不是免费的小 MLP：V3 一层约 11.5B unique 参数；D=3 要乘 3，显存和加载成本都上去。</li>
+<li>接受率低、batch 大（compute-bound）、主模型小，或 MLA 解码本身已经很吃算力时，投机解码可能不划算——这也是 5.5 里“MLA 配 MTP 吃亏”的原因。</li>
+</ul>
+<h3 id="66">6.6 常见误解</h3>
+<ul>
+<li>“MTP 用 h_B”：不对，用的是 h_A + Emb(B)；h_B 只在主模型验证时出现。</li>
+<li>“MTP 是 3 个并行 head”：不对，是 D 个串行 depth，后一层依赖前一层。</li>
+<li>“每层都用同一个 h”：不对，k=1 用主模型 h，k≥2 用上一层 MTP block 的 h。</li>
+<li>“最后一个 token 也要训”：不训，MTP 尾部按 depth 裁剪，直接 mask。</li>
+</ul>
+<h2 id="7-nopek3-rope">7. NoPE：K3 为什么可以去掉 RoPE</h2>
+<p>K3 的 MLA 保持标准结构，但把 RoPE 去掉了，变成 NoPE。这不是“位置编码不重要”，而是 K3 的位置信息主要由 KDA 隐式提供。</p>
+<h3 id="71-mla-rope">7.1 纯 MLA 为什么需要 RoPE</h3>
+<p>softmax attention 对 token 顺序是置换不变的；没有位置信号，它分不清“A 在 B 前”还是“B 在 A 前”。K2 是纯 MLA，位置信息基本靠 RoPE 注入，去掉 RoPE 会明显变差。</p>
+<h3 id="72-kda">7.2 KDA 如何提供隐式位置</h3>
+<p>KDA 是线性 attention / DeltaNet 一类，状态更新本身是顺序相关的：</p>
+<div class="arithmatex">\[S_t = \mathrm{decay}_t \odot S_{t-1} + \mathrm{write}(k_t, v_t)\]</div>
+<p>每个 token 按顺序写入固定状态，读出的结果天然带“谁先谁后、隔了多远”的信息。位置信息在 KDA 层已经混进 hidden，后面的 MLA 层不需要再靠 RoPE 显式告诉它位置。</p>
+<h3 id="73-ropepath">7.3 广义 RoPE：PaTH 等价形式</h3>
+<p>文章引用的推导：在正交情形下，PaTH 可以等价写成</p>
+<div class="arithmatex">\[\mathrm{SoftmaxAttention}(Q - \mathrm{DeltaNet}(Q,W,W),\; K - \mathrm{DeltaNet}(K,W,W),\; V)\]</div>
+<p>即“给 Q/K 加 DeltaNet”也能起到类似 RoPE 的位置编码作用。KDA 是更一般的 DeltaNet，所以 <strong>KDA+MLA 混合本身就自带一种广义 RoPE</strong>。K3 不是没有位置编码，而是位置编码由 KDA 隐式提供，MLA 不再显式加 RoPE。</p>
+<h3 id="74-64-rope">7.4 为什么还保留 64 维 RoPE 槽位</h3>
+<ul>
+<li>兼容现有 MLA 基建，不用重写一套代码；</li>
+<li>如果直接投影 576 维 latent 再拆成 192+128 的 K/V，确实更优雅，但计算会增加、效果没收益；</li>
+<li>K3 已经引入 KDA、AttnRes 等新变量，不想再往 MLA 里加变数。</li>
+</ul>
+<h3 id="75">7.5 小结</h3>
+<p>K3 的取舍可以概括为：<strong>MoE 用 Stable LatentMoE（SiTU-GLU + 升维前 RMS Norm + QB）把 896 选 16 训稳；Attention 用 KDA + MLA 混合，KDA 承担高频、低成本的状态更新和隐式位置，MLA 只留 24 层做全局检索；MLA 因此可以 NoPE，并保留 64 维槽位兼容旧基建；MTP 则是 DeepSeek-V3 路线，K3 因 MLA 解码已是高 head_dim MQA，对 MTP 的收益要另算。</strong></p>
+<ul>
+<li>延伸：PaTH 等价形式的完整推导见《线性注意力简史：从模仿、创新到反哺》；K3 技术报告与科学空间原文见 5.8。</li>
+</ul></article>
             </div>
           
           
