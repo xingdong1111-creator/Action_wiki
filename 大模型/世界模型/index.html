@@ -1,0 +1,888 @@
+
+<!doctype html>
+<html lang="zh" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="UniPi / Genie / Cosmos 生成式世界模型 vs JEPA / V-JEPA 2 / DINO-WM 隐空间路线，两条世界模型的演进与对比">
+      
+      
+      
+        <link rel="canonical" href="https://xingdong1111-creator.github.io/Action_wiki/%E5%A4%A7%E6%A8%A1%E5%9E%8B/%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/">
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../../%E9%9A%8F%E7%AC%94/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>世界模型：生成式 vs JEPA - Action</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#1-silu-swiglu" class="md-skip">
+          跳转至
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../.." title="Action" class="md-header__button md-logo" aria-label="Action" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Action
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Kimi K3 架构分析（MoE 与 Attention）
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切到深色"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="切到深色" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="切到浅色"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="切到浅色" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="搜索" placeholder="搜索" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="查找">
+        
+        <button type="reset" class="md-search__icon md-icon" title="清空当前内容" aria-label="清空当前内容" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="标签" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../.." class="md-tabs__link">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
+          
+  
+  
+    
+  
+  大模型
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../%E9%9A%8F%E7%AC%94/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  随笔
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="导航栏" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Action" class="md-nav__button md-logo" aria-label="Action" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Action
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+      
+        
+        
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    大模型
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_2" id="__nav_2_label" tabindex="">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    大模型
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="../k3%E5%88%86%E6%9E%90/"><span class="md-ellipsis">Kimi K3 架构分析</span></a></li><li class="md-nav__item md-nav__item--active"><input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/><label class="md-nav__link md-nav__link--active" for="__toc"><span class="md-ellipsis">世界模型：生成式 vs JEPA</span><span class="md-nav__icon md-icon"></span></label><a class="md-nav__link md-nav__link--active" href="./"><span class="md-ellipsis">世界模型：生成式 vs JEPA</span></a><nav aria-label="目录" class="md-nav md-nav--secondary"><label class="md-nav__title" for="__toc"><span class="md-nav__icon md-icon"></span>目录</label><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#1"><span class="md-ellipsis">1. 生成式路线</span></a><nav aria-label="1. 生成式路线" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#11-unipi2023mit-google"><span class="md-ellipsis">1.1 UniPi（2023，MIT + Google）：策略即视频生成</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#12-geniedeepmind2024-genie-32025"><span class="md-ellipsis">1.2 Genie（DeepMind，2024 → Genie 3，2025）：可交互、可玩的世界</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#13-cosmos-1nvidia20251"><span class="md-ellipsis">1.3 Cosmos 1（NVIDIA，2025.1）：把世界模型做成工业平台</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#14-cosmos-policy"><span class="md-ellipsis">1.4 Cosmos Policy：世界模型“长出”策略</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#15-cosmos-32025-2026"><span class="md-ellipsis">1.5 Cosmos 3（2025 底 / 2026）：一个模型统一所有能力</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#16"><span class="md-ellipsis">1.6 生成式路线演进链</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#2-jepa"><span class="md-ellipsis">2. JEPA 路线</span></a><nav aria-label="2. JEPA 路线" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#21-jepa2022"><span class="md-ellipsis">2.1 JEPA（2022）：理论框架</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#22-v-jepa2024"><span class="md-ellipsis">2.2 V-JEPA（2024）：视频领域落地</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#23-v-jepa-22025"><span class="md-ellipsis">2.3 V-JEPA 2（2025）：从“看懂”到“操控”的质变</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#24-dino-wm2024-icml-2025"><span class="md-ellipsis">2.4 DINO-WM（2024 / ICML 2025）：借力预训练特征</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#25-jepa"><span class="md-ellipsis">2.5 JEPA 路线演进链</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#3"><span class="md-ellipsis">3. 两条路线的对比</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#4"><span class="md-ellipsis">4. 一句话总结</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#5"><span class="md-ellipsis">5. 参考</span></a></li></ul></nav></li></ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+      
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../%E9%9A%8F%E7%AC%94/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    随笔
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    随笔
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="目录">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#1"><span class="md-ellipsis">1. 生成式路线</span></a><nav aria-label="1. 生成式路线" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#11-unipi2023mit-google"><span class="md-ellipsis">1.1 UniPi（2023，MIT + Google）：策略即视频生成</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#12-geniedeepmind2024-genie-32025"><span class="md-ellipsis">1.2 Genie（DeepMind，2024 → Genie 3，2025）：可交互、可玩的世界</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#13-cosmos-1nvidia20251"><span class="md-ellipsis">1.3 Cosmos 1（NVIDIA，2025.1）：把世界模型做成工业平台</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#14-cosmos-policy"><span class="md-ellipsis">1.4 Cosmos Policy：世界模型“长出”策略</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#15-cosmos-32025-2026"><span class="md-ellipsis">1.5 Cosmos 3（2025 底 / 2026）：一个模型统一所有能力</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#16"><span class="md-ellipsis">1.6 生成式路线演进链</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#2-jepa"><span class="md-ellipsis">2. JEPA 路线</span></a><nav aria-label="2. JEPA 路线" class="md-nav"><ul class="md-nav__list"><li class="md-nav__item"><a class="md-nav__link" href="#21-jepa2022"><span class="md-ellipsis">2.1 JEPA（2022）：理论框架</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#22-v-jepa2024"><span class="md-ellipsis">2.2 V-JEPA（2024）：视频领域落地</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#23-v-jepa-22025"><span class="md-ellipsis">2.3 V-JEPA 2（2025）：从“看懂”到“操控”的质变</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#24-dino-wm2024-icml-2025"><span class="md-ellipsis">2.4 DINO-WM（2024 / ICML 2025）：借力预训练特征</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#25-jepa"><span class="md-ellipsis">2.5 JEPA 路线演进链</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#3"><span class="md-ellipsis">3. 两条路线的对比</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#4"><span class="md-ellipsis">4. 一句话总结</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#5"><span class="md-ellipsis">5. 参考</span></a></li></ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags">
+<span class="md-tag">世界模型</span>
+<span class="md-tag">JEPA</span>
+<span class="md-tag">视频生成</span>
+<span class="md-tag">Cosmos</span>
+<span class="md-tag">Genie</span>
+</nav>
+
+
+
+  <h1 id="vs-jepa">世界模型：生成式 vs JEPA</h1>
+<p>前面聊 JEPA 时，说的是“在隐空间预测，不生成像素”；UniPi / Genie / Cosmos 这一串正好相反：<strong>真的把未来像素/视频画出来</strong>。两条路线都在回答“模型如何理解世界”，但下注方式不同：</p>
+<ul>
+<li><strong>JEPA 路线</strong>：隐空间预测，不画像素，预测式。</li>
+<li><strong>生成式路线</strong>：生成未来视频/可交互世界，生成式；“会画未来 = 懂世界 = 能决策”。</li>
+</ul>
+<p>生成式路线的赌注是：如果模型能生成物理上合理的未来视频，它内部一定隐含了世界动力学，就能拿来规划/控制。</p>
+<h2 id="1">1. 生成式路线</h2>
+<h3 id="11-unipi2023mit-google">1.1 UniPi（2023，MIT + Google）：策略即视频生成</h3>
+<p>论文：<em>Learning Universal Policies via Text-Guided Video Generation</em>。</p>
+<p>核心思想：把“顺序决策”重新表述为“文本条件的视频生成”问题。</p>
+<pre><code class="language-text">文本指令 &quot;把红块放进碗里&quot; + 当前观测帧
+        │
+        ▼
+文本条件视频扩散模型（Planner）
+        │
+        ▼
+生成一段“未来该怎么做”的视频（一帧帧画出来）
+        │
+        ▼
+逆动力学模型（Inverse Dynamics）
+        │
+        ▼
+从相邻帧反推出动作 a_t → 执行
+</code></pre>
+<p>两个关键部件：</p>
+<ol>
+<li><strong>视频扩散当 planner</strong>：生成“任务应该长什么样”的未来帧序列。</li>
+<li><strong>逆动力学模型提取动作</strong>：从生成视频的相邻帧之间反解出机器人动作。</li>
+</ol>
+<p>为什么叫“universal”：所有环境/任务都被统一表示成“图像空间里的视频”，不同状态/动作空间被抹平到同一个像素接口，靠语言泛化到新目标、新任务。</p>
+<p>历史地位：第一个明确提出“video generation = policy”的工作，是整条生成式路线的思想源头。但慢、依赖逆动力学、生成质量受限。</p>
+<h3 id="12-geniedeepmind2024-genie-32025">1.2 Genie（DeepMind，2024 → Genie 3，2025）：可交互、可玩的世界</h3>
+<p>论文：<em>Genie: Generative Interactive Environments</em>。</p>
+<p>UniPi 生成的是“一段固定视频”；Genie 的突破是生成一个你能实时操控的世界。</p>
+<p>Genie 1 的三大创新：</p>
+<pre><code class="language-text">海量无标注互联网视频（无动作标签）
+        │
+        ├─ ① Latent Action Model（潜动作模型）
+        │     从相邻帧【无监督地】学出“潜在动作”
+        │
+        ├─ ② Video Tokenizer（把帧压成 token）
+        │
+        └─ ③ Dynamics Model（时空 Transformer）
+              给定过去帧 + 潜动作 → 预测下一帧
+        ▼
+一个可以“按潜动作逐帧推进”的可交互环境
+</code></pre>
+<p>最惊艳的点：从纯无标注视频里自监督学出“动作”这个概念（latent actions），不需要任何动作标注。这解决了机器人/生成世界模型最大的痛点——动作标注太贵。</p>
+<p>Genie 3（2025.8）：</p>
+<ul>
+<li>通用世界模型：一句文本 → 生成照片级、可实时导航的交互环境。</li>
+<li>实时、长时程一致性大幅提升，是“生成式可交互世界”目前的天花板级 demo。</li>
+<li>用途：给 agent 提供无限的、可交互的训练/评估环境（类似给具身智能造“无限游戏世界”）。</li>
+</ul>
+<p>Genie 的定位：不是直接做机器人策略，而是造“可交互的世界模拟器”——既可当 agent 的训练场，也印证了“生成式世界模型”的可行性。</p>
+<h3 id="13-cosmos-1nvidia20251">1.3 Cosmos 1（NVIDIA，2025.1）：把世界模型做成工业平台</h3>
+<p>论文：<em>Cosmos World Foundation Model Platform for Physical AI</em>（arXiv 2501.03575）。</p>
+<p>UniPi/Genie 是研究原型，Cosmos 是 NVIDIA 把它工程化、平台化、面向真实产业（机器人 + 自动驾驶）。</p>
+<p>三件套模型（都可 post-train 定制）：</p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Cosmos-Predict</strong></td>
+<td>预测未来世界状态（生成视频）——核心世界模型，支持 Text2World / Image2World / Video2World</td>
+</tr>
+<tr>
+<td><strong>Cosmos-Transfer</strong></td>
+<td>跨域/跨模态迁移（如仿真 ↔ 真实、加不同条件控制生成）——主要用来造合成训练数据</td>
+</tr>
+<tr>
+<td><strong>Cosmos-Reason</strong></td>
+<td>一个物理 AI 推理 VLM，懂物理常识，还兼做 Predict 的文本编码器</td>
+</tr>
+</tbody>
+</table>
+<p>再加上：Tokenizer（把视频高效压成 token）+ 数据 curation 管线 + guardrails（安全护栏）。</p>
+<p>Cosmos 的真正商业用途：<strong>大规模生成合成数据</strong>——为自动驾驶、机器人生成海量物理上合理的场景视频，喂给下游模型训练。这是它区别于纯研究的落地点。</p>
+<h3 id="14-cosmos-policy">1.4 Cosmos Policy：世界模型“长出”策略</h3>
+<p>在 Cosmos-Predict2.5 里有一个具体模型：<code>Cosmos-Predict2.5-2B/robot/policy</code>。</p>
+<ul>
+<li>在 Libero、RoboCasa（机器人操作 benchmark）上 post-train；</li>
+<li>输入：action + image；</li>
+<li>定位（NVIDIA 官方原话）：“policy model 把预学到的动作适配到具体任务、领域和行为上”。</li>
+</ul>
+<p>它的意义：把“生成式世界模型”从“预测未来/造数据”进一步推到直接输出机器人策略。也就是完成了 UniPi 的初心——世界模型不只是模拟器，它本身可以微调成策略。</p>
+<p>对应“世界模型当预训练骨干 → 微调出策略”的混合路线，这是它在生成式路线上的落地。</p>
+<h3 id="15-cosmos-32025-2026">1.5 Cosmos 3（2025 底 / 2026）：一个模型统一所有能力</h3>
+<p>Cosmos 1/2.5 还是三个专门模型分工（predict / transfer / reason）。Cosmos 3 的核心变化：<strong>用一个统一架构，一个模型全干</strong>。</p>
+<p>官方原话拆解：</p>
+<blockquote>
+<p>A single Cosmos 3 model can reason, predict future world states, transfer across domains and modalities, and generate actions and policies for embodied agents — within one unified architecture.</p>
+</blockquote>
+<p>即一个模型同时具备：</p>
+<ol>
+<li>推理（reason）</li>
+<li>预测未来世界状态（predict）</li>
+<li>跨域跨模态迁移（transfer）</li>
+<li>为具身智能体生成动作与策略（policy）</li>
+</ol>
+<p>趋势判断：这是“世界模型”走向<strong>统一基础模型（Unified WFM）</strong>的信号——把理解、预测、迁移、决策揉进一个大模型，对标 V-JEPA 2 的“理解 + 预测 + 规划三合一”，但走的是生成式而非预测式路线。</p>
+<h3 id="16">1.6 生成式路线演进链</h3>
+<pre><code class="language-text">UniPi (2023) ── “视频生成 = 策略”的思想开山
+   │            （文本 → 生成未来视频 → 逆动力学出动作）
+   ▼
+Genie (2024→3, 2025) ── 可交互世界；无监督学出潜动作；造可玩世界模拟器
+   │
+   ▼
+Cosmos 1 (2025.1) ── 工业平台化：Predict / Transfer / Reason 三件套 + 造合成数据
+   │
+   ├── Cosmos Policy ── 世界模型 post-train 成机器人策略（action + image）
+   ▼
+Cosmos 3 (2025 末) ── 统一架构：reason + predict + transfer + policy 一个模型全包
+</code></pre>
+<h2 id="2-jepa">2. JEPA 路线</h2><p>JEPA 的训练范式可以概括为两步：<b>① 只训 encoder</b>——图片/视频挖孔，做掩码表征预测，学基础认知；<b>② 加动作</b>——给图片 + 动作，预测未来视频的隐空间表征。全程没有 decoder，回不到像素空间。</p>
+<h3 id="21-jepa2022">2.1 JEPA（2022）：理论框架</h3>
+<p>提出时间：2022 年 6 月，LeCun 在立场论文 <em>A Path Towards Autonomous Machine Intelligence</em> 中正式提出。</p>
+<p>核心思想：放弃像素/token 级的逐点重建，改为在抽象的潜在表征空间中预测未来或缺失的信息。</p>
+<p>架构组成（非对称三组件）：</p>
+<ul>
+<li><strong>Context Encoder</strong>：提取可见输入的特征，梯度可回传。</li>
+<li><strong>Target Encoder</strong>：提供目标表征，参数通过 EMA 从 Context Encoder 更新，梯度停止。</li>
+<li><strong>Predictor</strong>：基于上下文表征预测目标表征。</li>
+</ul>
+<p>训练目标：最小化预测表征与真实目标表征之间的距离（L1/L2 损失），<strong>无需解码器还原原始数据</strong>。这套非对称设计（EMA target encoder + stop-grad + predictor）也是防止表征坍塌的关键。</p>
+<p>为什么重要：LeCun 认为自回归 LLM 缺乏对物理世界的理解，JEPA 是他构想的 AGI 技术路径的核心——让机器通过被动观察学习世界的“内部模拟”，而非单纯的语言预测。</p>
+<h3 id="22-v-jepa2024">2.2 V-JEPA（2024）：视频领域落地</h3>
+<p>论文：<em>V-JEPA</em>（arXiv 2404.08471）。</p>
+<p>核心升级：将 JEPA 从静态图像扩展到动态视频序列，采用 3D tubelet 掩码策略 + 时空 ViT 架构，在时空维度学习动作和场景的抽象规律。</p>
+<p>关键设计：</p>
+<ul>
+<li><strong>3D 多块掩码</strong>：在时空维度上随机遮蔽部分 patch token，迫使模型学习长程时空依赖。</li>
+<li><strong>L1 回归损失</strong>：在表征空间做回归预测，而非像素重建。</li>
+<li><strong>渐进式训练</strong>：从 16 帧短视频逐步扩展到 64 帧长视频，让模型学会长期一致性。</li>
+</ul>
+<p>能力边界：仅支持视频分类、行为预测等视觉理解任务，还没有动作条件和规划能力。</p>
+<h3 id="23-v-jepa-22025">2.3 V-JEPA 2（2025）：从“看懂”到“操控”的质变</h3>
+<p>论文：<em>V-JEPA 2</em>（arXiv 2506.09985）。</p>
+<p>四维升级（相比 V-JEPA）：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>V-JEPA</th>
+<th>V-JEPA 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>数据量</td>
+<td>200 万样本</td>
+<td>2200 万样本（VideoMix22M），超 100 万小时视频</td>
+</tr>
+<tr>
+<td>模型规模</td>
+<td>6 亿参数（ViT-H）</td>
+<td>10 亿参数（ViT-g）</td>
+</tr>
+<tr>
+<td>训练迭代</td>
+<td>9 万次</td>
+<td>25.2 万次</td>
+</tr>
+<tr>
+<td>位置编码</td>
+<td>绝对位置编码</td>
+<td>3D-RoPE 旋转位置编码</td>
+</tr>
+</tbody>
+</table>
+<p>两阶段训练架构：</p>
+<ol>
+<li><strong>预训练阶段</strong>：用百万小时互联网视频学习通用视觉表征（编码器可训练）。</li>
+<li><strong>动作条件化微调（V-JEPA 2-AC）</strong>：冻结预训练编码器，新增动作条件预测器，仅用 62 小时机器人交互数据学习“动作 → 视觉状态变化”的因果映射。</li>
+</ol>
+<p>核心突破：首次实现零样本机器人规划。配合 MPC（模型预测控制），在从未见过的环境中，仅凭一张目标图片就能规划出抓取、放置等操作序列，成功率 65%–80%。</p>
+<p>性能数据：LIBERO 视频预测 64 帧延迟仅 <strong>0.619 秒</strong>，运行速度比 NVIDIA Cosmos 快 <strong>30 倍</strong>。</p>
+<h3 id="24-dino-wm2024-icml-2025">2.4 DINO-WM（2024 / ICML 2025）：借力预训练特征</h3>
+<p>论文：<em>DINO-WM</em>（arXiv 2411.04983）。</p>
+<p>核心思路：不从头训练视觉编码器，而是直接复用冻结的 DINOv2 预训练空间 patch 特征作为观测模型，在潜在空间中预测未来的 DINO 特征。</p>
+<p>架构：</p>
+<ul>
+<li><strong>观测模型</strong>：冻结的 DINOv2，将 RGB 图像编码为 patch 嵌入 <code>z_t ∈ R^(N×E)</code>。</li>
+<li><strong>转移模型</strong>：ViT 架构 + 因果注意力，接收历史潜状态 + 动作，自回归预测下一帧潜状态。</li>
+<li><strong>解码器</strong>：可选，训练和推理都不需要。</li>
+</ul>
+<p>为什么用 DINOv2 的 patch 特征而不是 CLS token：实验表明，patch 特征在所有任务上始终优于全局特征（DINO CLS、R3M、ResNet），尤其在空间推理任务（wall、reach）上成功率超过 0.90，而 ResNet 低于 0.20。</p>
+<p>能力：在六个环境（Maze、Wall、PushT、Reach、Rope、Granular）中实现零样本行为规划，无需专家演示、奖励建模或预学习逆模型，成功率比先前 SOTA 平均提升 <strong>45%</strong>。</p>
+<h3 id="25-jepa">2.5 JEPA 路线演进链</h3>
+<pre><code class="language-text">JEPA（2022）          ← 理论框架：在表征空间预测，而非像素重建
+  │
+  ├── I-JEPA（2023）  ← 图像领域首次落地
+  │
+  ├── V-JEPA（2024）  ← 扩展到视频，学习时空动态
+  │     │
+  │     └── V-JEPA 2（2025）← 两阶段训练 + 动作条件化，实现零样本规划
+  │
+  └── DINO-WM（2024） ← 另一条路径：直接借用 DINOv2 预训练特征做世界模型
+</code></pre>
+<p>V-JEPA 2 vs DINO-WM 的核心差异：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>V-JEPA 2</th>
+<th>DINO-WM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>视觉编码器</td>
+<td>自己从头训练（ViT-g，10 亿参数）</td>
+<td>直接复用冻结的 DINOv2</td>
+</tr>
+<tr>
+<td>训练数据</td>
+<td>百万小时互联网视频 + 62 小时机器人数据</td>
+<td>离线收集的轨迹数据</td>
+</tr>
+<tr>
+<td>训练成本</td>
+<td>高（25.2 万次迭代）</td>
+<td>低（编码器冻结，只训转移模型）</td>
+</tr>
+<tr>
+<td>通用性</td>
+<td>更强（端到端学习，表征更适配任务）</td>
+<td>依赖 DINOv2 的特征质量</td>
+</tr>
+<tr>
+<td>定位</td>
+<td>“自己练出大脑”</td>
+<td>“借别人的大脑用”</td>
+</tr>
+</tbody>
+</table>
+<h2 id="3">3. 两条路线的对比</h2>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>JEPA 系列（V-JEPA 2 / DINO-WM）</th>
+<th>生成式系列（UniPi / Genie / Cosmos）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>预测什么</td>
+<td>隐空间表征（不画像素）</td>
+<td>真实像素/视频</td>
+</tr>
+<tr>
+<td>哲学</td>
+<td>只预测“决策必需的抽象状态”</td>
+<td>“能画出未来 = 懂世界”</td>
+</tr>
+<tr>
+<td>算力</td>
+<td>轻，适合实时控制</td>
+<td>重，生成慢</td>
+</tr>
+<tr>
+<td>优点</td>
+<td>高效、抗无关细节干扰、适合规划</td>
+<td>可视化、可交互、能造数据、可迁移</td>
+</tr>
+<tr>
+<td>缺点</td>
+<td>不可视、目标图依赖</td>
+<td>生成慢、可能“画得漂亮但物理错”、误差随帧累积</td>
+</tr>
+<tr>
+<td>LeCun 态度</td>
+<td>力挺（这是他的主张）</td>
+<td>公开批评（认为像素生成浪费算力在不可预测细节）</td>
+</tr>
+<tr>
+<td>代表落地</td>
+<td>机器人 zero-shot 规划</td>
+<td>自动驾驶/机器人合成数据、可交互世界</td>
+</tr>
+</tbody>
+</table>
+<p>这正是当前世界模型的核心分歧：</p>
+<ul>
+<li><strong>LeCun 阵营（JEPA）</strong>：预测抽象表征就够了，画像素是浪费。</li>
+<li><strong>生成式阵营（Sora / Genie / Cosmos）</strong>：像素级生成虽贵，但能可视化、可交互、能造数据、能迁移，工业价值大。</li>
+</ul>
+<p>现实结论：</p>
+<ul>
+<li>要实时机器人控制 → 偏 JEPA/预测式 + 微调策略（轻、快）。</li>
+<li>要造训练数据、仿真、可交互世界、跨域迁移 → 生成式（Cosmos 的主战场就是这个）。</li>
+<li>两条路线正在合流：Cosmos 3 和 V-JEPA 2 都在做“理解 + 预测 + 决策统一”，只是一个走生成、一个走预测。</li>
+</ul>
+<h2 id="4">4. 一句话总结</h2>
+<p>这一串是“生成式世界模型”的进化史：UniPi 提出“视频生成即策略”，Genie 让世界“可交互 + 自监督学出动作”，Cosmos 把它工程化成面向物理 AI 的工业平台（并长出 policy 模型），Cosmos 3 则把推理/预测/迁移/决策统一进一个模型。它们与 JEPA 的根本分歧在于——到底该“生成像素级未来”还是“只预测抽象隐空间”。前者赢在可视化/造数据/迁移，后者赢在高效/实时控制，目前正殊途同归地走向“统一世界基础模型”。</p>
+<h2 id="5">5. 参考</h2>
+<ul>
+<li>UniPi: <a href="https://arxiv.org/abs/2302.00111">https://arxiv.org/abs/2302.00111</a></li>
+<li>Genie: <a href="https://arxiv.org/abs/2402.15391">https://arxiv.org/abs/2402.15391</a></li>
+<li>Cosmos: <a href="https://arxiv.org/abs/2501.03575">https://arxiv.org/abs/2501.03575</a></li>
+<li>V-JEPA: <a href="https://arxiv.org/abs/2404.08471">https://arxiv.org/abs/2404.08471</a></li>
+<li>V-JEPA 2: <a href="https://arxiv.org/abs/2506.09985">https://arxiv.org/abs/2506.09985</a></li>
+<li>DINO-WM: <a href="https://arxiv.org/abs/2411.04983">https://arxiv.org/abs/2411.04983</a></li>
+<li>LeCun, <em>A Path Towards Autonomous Machine Intelligence</em> (2022)</li>
+</ul></article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  回到页面顶部
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "navigation.indexes", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../../javascripts/mathjax.js"></script>
+      
+        <script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
