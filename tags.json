@@ -1,1 +1,1 @@
-{"mappings": [{"item": {"url": "%E5%A4%A7%E6%A8%A1%E5%9E%8B/k3%E5%88%86%E6%9E%90/", "title": "Kimi K3 \u67b6\u6784\u5206\u6790"}, "tags": ["LLM", "MLA", "MoE", "\u7ebf\u6027\u6ce8\u610f\u529b"]}]}
+{"mappings":[{"item":{"url":"%E5%A4%A7%E6%A8%A1%E5%9E%8B/k3%E5%88%86%E6%9E%90/","title":"Kimi K3 架构分析"},"tags":["LLM","MLA","MoE","线性注意力"]},{"item":{"url":"%E5%A4%A7%E6%A8%A1%E5%9E%8B/being-h07/","title":"Being-H0.7 论文解读"},"tags":["具身智能","VLA","世界模型","论文解读"]}]}

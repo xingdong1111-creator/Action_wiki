@@ -1,0 +1,1043 @@
+<!doctype html>
+<!DOCTYPE html>
+
+<html class="no-js" lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Being-H0.7 论文解读：3B latent world-action model，16 个 latent query + 双分支对齐，推理不生成未来帧；六个仿真 benchmark + 三个真机平台。" name="description"/>
+<link href="https://xingdong1111-creator.github.io/Action_wiki/%E5%A4%A7%E6%A8%A1%E5%9E%8B/being-h07/" rel="canonical"/>
+<link href="../" rel="prev"/>
+<link href="../../%E9%9A%8F%E7%AC%94/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
+<title>Being-H0.7 论文解读：Latent World-Action Model - Action</title>
+<link href="../../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#1-silu-swiglu">
+          跳转至
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="页眉" class="md-header__inner md-grid">
+<a aria-label="Action" class="md-header__button md-logo" data-md-component="logo" href="../.." title="Action">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            Action
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Kimi K3 架构分析（MoE 与 Attention）
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="切到深色" class="md-option" data-md-color-accent="indigo" data-md-color-media="" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="切到深色">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="切到浅色" class="md-option" data-md-color-accent="indigo" data-md-color-media="" data-md-color-primary="indigo" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="切到浅色">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="搜索" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="搜索" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="查找" class="md-search__options">
+<button aria-label="清空当前内容" class="md-search__icon md-icon" tabindex="-1" title="清空当前内容" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="标签" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../">
+          
+  
+  
+    
+  
+  大模型
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../%E9%9A%8F%E7%AC%94/">
+          
+  
+  
+    
+  
+  随笔
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="导航栏" class="md-nav md-nav--primary md-nav--lifted" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="Action" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="Action">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    Action
+  </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    大模型
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    大模型
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item"><a class="md-nav__link" href="../k3分析/"><span class="md-ellipsis">Kimi K3 架构分析</span></a></li><li class="md-nav__item md-nav__item--active"><input checked="" class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/><label class="md-nav__link md-nav__link--active" for="__toc" tabindex=""><span class="md-ellipsis">Being-H0.7 论文解读</span><span class="md-nav__icon md-icon"></span></label><a class="md-nav__link md-nav__link--active" href="./"><span class="md-ellipsis">Being-H0.7 论文解读</span></a><nav aria-label="目录" class="md-nav md-nav--secondary"><label class="md-nav__title" for="__toc"><span class="md-nav__icon md-icon"></span>目录</label><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#1"><span class="md-ellipsis">1. 它想解决什么问题</span></a><nav aria-label="1. 它想解决什么问题" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#11-vla"><span class="md-ellipsis">1.1 VLA 的结构性瓶颈：观测稠密，动作监督稀疏</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#12-wam"><span class="md-ellipsis">1.2 世界动作模型（WAM）的两难</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#2"><span class="md-ellipsis">2. 核心思想：把世界模型搬到动作之前的隐空间</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#3"><span class="md-ellipsis">3. 方法拆解</span></a><nav aria-label="3. 方法拆解" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#31-latent-queries"><span class="md-ellipsis">3.1 第一步：插入 latent queries，给模型一个“思考槽”</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#311"><span class="md-ellipsis">3.1.1 输入序列的整体排列</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#32"><span class="md-ellipsis">3.2 第二步：训练期双分支，让未来观测当“老师”</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#33"><span class="md-ellipsis">3.3 第三步：隐状态对齐，把未来蒸馏进当前推理</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#34"><span class="md-ellipsis">3.4 第四步：防塌缩正则</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#35"><span class="md-ellipsis">3.5 工程实现：一次前向跑完两条分支</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#36"><span class="md-ellipsis">3.6 训练配置速查</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#4-q-loss"><span class="md-ellipsis">4. 训练目标：Q、两个分支和 loss</span></a><nav aria-label="4. 训练目标：Q、两个分支和 loss" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#41-q"><span class="md-ellipsis">4.1 Q 是不是一直存在？</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#42"><span class="md-ellipsis">4.2 一次训练迭代发生什么</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#43-loss"><span class="md-ellipsis">4.3 四种 loss 分别是什么</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#44"><span class="md-ellipsis">4.4 三个容易搞错的点</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#45-posterior-loss"><span class="md-ellipsis">4.5 为什么 posterior 也要动作 loss</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#46"><span class="md-ellipsis">4.6 一个值得注意的权重细节</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#5"><span class="md-ellipsis">5. 实验结果</span></a><nav aria-label="5. 实验结果" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#51-benchmark"><span class="md-ellipsis">5.1 仿真：六个 benchmark</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#52-3-12-5"><span class="md-ellipsis">5.2 真机：3 平台 × 12 任务 × 5 能力维度</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#53-latent-wam"><span class="md-ellipsis">5.3 部署成本：latent WAM 的真正卖点</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#6"><span class="md-ellipsis">6. 评价</span></a><nav aria-label="6. 评价" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#61"><span class="md-ellipsis">6.1 值得肯定的地方</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#62"><span class="md-ellipsis">6.2 需要保留的疑问</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#63"><span class="md-ellipsis">6.3 适用边界</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#7"><span class="md-ellipsis">7. 关键信息速查</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#_1"><span class="md-ellipsis">参考</span></a></li></ul></nav></li>
+<li class="md-nav__item"><a class="md-nav__link" href="../%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/"><span class="md-ellipsis">世界模型：生成式 vs JEPA</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="../%E8%B5%84%E6%96%99%E9%93%BE%E6%8E%A5/"><span class="md-ellipsis">学习资料链接收藏</span></a></li></ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../%E9%9A%8F%E7%AC%94/">
+<span class="md-ellipsis">
+    
+  
+    随笔
+  
+
+    
+  </span>
+</a>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    随笔
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="目录" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#1"><span class="md-ellipsis">1. 它想解决什么问题</span></a><nav aria-label="1. 它想解决什么问题" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#11-vla"><span class="md-ellipsis">1.1 VLA 的结构性瓶颈：观测稠密，动作监督稀疏</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#12-wam"><span class="md-ellipsis">1.2 世界动作模型（WAM）的两难</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#2"><span class="md-ellipsis">2. 核心思想：把世界模型搬到动作之前的隐空间</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#3"><span class="md-ellipsis">3. 方法拆解</span></a><nav aria-label="3. 方法拆解" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#31-latent-queries"><span class="md-ellipsis">3.1 第一步：插入 latent queries，给模型一个“思考槽”</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#311"><span class="md-ellipsis">3.1.1 输入序列的整体排列</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#32"><span class="md-ellipsis">3.2 第二步：训练期双分支，让未来观测当“老师”</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#33"><span class="md-ellipsis">3.3 第三步：隐状态对齐，把未来蒸馏进当前推理</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#34"><span class="md-ellipsis">3.4 第四步：防塌缩正则</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#35"><span class="md-ellipsis">3.5 工程实现：一次前向跑完两条分支</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#36"><span class="md-ellipsis">3.6 训练配置速查</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#4-q-loss"><span class="md-ellipsis">4. 训练目标：Q、两个分支和 loss</span></a><nav aria-label="4. 训练目标：Q、两个分支和 loss" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#41-q"><span class="md-ellipsis">4.1 Q 是不是一直存在？</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#42"><span class="md-ellipsis">4.2 一次训练迭代发生什么</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#43-loss"><span class="md-ellipsis">4.3 四种 loss 分别是什么</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#44"><span class="md-ellipsis">4.4 三个容易搞错的点</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#45-posterior-loss"><span class="md-ellipsis">4.5 为什么 posterior 也要动作 loss</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#46"><span class="md-ellipsis">4.6 一个值得注意的权重细节</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#5"><span class="md-ellipsis">5. 实验结果</span></a><nav aria-label="5. 实验结果" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#51-benchmark"><span class="md-ellipsis">5.1 仿真：六个 benchmark</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#52-3-12-5"><span class="md-ellipsis">5.2 真机：3 平台 × 12 任务 × 5 能力维度</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#53-latent-wam"><span class="md-ellipsis">5.3 部署成本：latent WAM 的真正卖点</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#6"><span class="md-ellipsis">6. 评价</span></a><nav aria-label="6. 评价" class="md-nav"><ul class="md-nav__list" data-md-component="toc" data-md-scrollfix=""><li class="md-nav__item"><a class="md-nav__link" href="#61"><span class="md-ellipsis">6.1 值得肯定的地方</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#62"><span class="md-ellipsis">6.2 需要保留的疑问</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#63"><span class="md-ellipsis">6.3 适用边界</span></a></li></ul></nav></li><li class="md-nav__item"><a class="md-nav__link" href="#7"><span class="md-ellipsis">7. 关键信息速查</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="#_1"><span class="md-ellipsis">参考</span></a></li></ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset"><nav class="md-tags"><span class="md-tag">具身智能</span><span class="md-tag">VLA</span><span class="md-tag">世界模型</span><span class="md-tag">论文解读</span></nav><h1 id="being-h07-latent-world-action-model">Being-H0.7 论文解读：Latent World-Action Model</h1>
+<blockquote>
+<p><strong>论文</strong>：<a href="https://research.beingbeyond.com/projects/being-h07/being-h07.pdf">Being-H0.7: A Latent World-Action Model from Egocentric Videos</a><br/>
+<strong>项目页</strong>：<a href="https://research.beingbeyond.com/being-h07">research.beingbeyond.com/being-h07</a><br/>
+<strong>代码</strong>：<a href="https://github.com/BeingBeyond/Being-H">github.com/BeingBeyond/Being-H</a><br/>
+<strong>作者</strong>：Hao Luo*、Wanpeng Zhang*、Yicheng Feng*、Sipeng Zheng*、Haiweng Xu、Chaoyi Xu、Ziheng Xi、Yuhui Fu、Zongqing Lu†（BeingBeyond / 智在无界）</p>
+</blockquote>
+<p><strong>一句话总结</strong>：Being-H0.7 是 BeingBeyond 的第三代 VLA，3B 参数。它的核心主张是“世界模型不必生成像素”：在感知与动作之间插入 16 个可学习的 latent query，训练时用一个“看得到未来观测”的 posterior 分支当老师，把未来信息蒸馏进“只看当前观测”的 prior 分支；推理时 posterior 整个丢掉，不生成任何未来帧。</p>
+<hr/>
+<h2 id="1">1. 它想解决什么问题</h2>
+<h3 id="11-vla">1.1 VLA 的结构性瓶颈：观测稠密，动作监督稀疏</h3>
+<p>标准 VLA 把多模态观测和语言指令直接映射为动作。问题在于：观测是稠密、语义丰富的，而动作监督是稀疏的，并且与示范轨迹高度相关。这种不对称会鼓励模型学“捷径映射”——看到某个视觉线索就直接输出某个动作，而不是在中间建立对<strong>物体动力学、接触、任务进度</strong>的理解。结果是分布内表现很好，一旦需要预判“世界接下来会怎么变”，就容易失效。</p>
+<h3 id="12-wam">1.2 世界动作模型（WAM）的两难</h3>
+<p>世界建模本来是对症的药：让机器人先想象场景如何演化，再决定动作。近年的 WAM 大多走“image-then-act”——先用视频生成模型 rollout 未来帧，再解码动作。未来帧确实提供了来自无标注视频的稠密监督，但论文认为这条路有三个根本代价：</p>
+<ol>
+<li><strong>目标错配</strong>：操作任务并不需要高保真重建未来视频，只需要接触、物体运动、affordance、任务进度这类紧凑线索。像素预测高度欠定——视觉上不同的未来可能对应同一个正确动作，视觉上合理的未来也可能对控制毫无帮助甚至误导。容量大量花在纹理、光照、背景上。</li>
+<li><strong>训练成本</strong>：继承视频生成的重训练成本，难以扩展到互联网级视频预训练。</li>
+<li><strong>推理延迟</strong>：test-time rollout 在每一步控制都增加额外延迟和显存，对动态任务（接球、传送带）是硬伤。Fast-WAM 虽然去掉了测试时展开，但仍然绑定视频生成训练，继承其成本、不稳定性和对不完美像素预测的敏感。</li>
+</ol>
+<p>论文由此提出一个不同的问题：未来信息应该塑造策略的<strong>内部推理</strong>，但不必被重建成像素。机器人应该先问“哪些未来相关信息对控制重要”，而不是“下一帧长什么样”。</p>
+<hr/>
+<h2 id="2">2. 核心思想：把世界模型搬到动作之前的隐空间</h2>
+<p>Being-H0.7 在感知与动作之间引入一个紧凑的 latent reasoning space。模型不再被迫从原始多模态上下文直接映射到低层动作，而是先形成“接下来这次交互中什么重要”的内部表征，再以它为条件生成动作。</p>
+<table>
+<thead>
+<tr>
+<th>范式</th>
+<th>未来信息放在哪</th>
+<th>推理时要生成未来吗</th>
+<th>主要代价</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>直接 VLA</td>
+<td>不显式建模未来</td>
+<td>否</td>
+<td>容易学 shortcut，分布外预判弱</td>
+</tr>
+<tr>
+<td>像素 WAM（image-then-act）</td>
+<td>未来 RGB 帧</td>
+<td>是（或训练绑定视频生成）</td>
+<td>训练贵、推理慢、目标错配</td>
+</tr>
+<tr>
+<td><strong>Being-H0.7（latent WAM）</strong></td>
+<td><strong>动作之前的 K 个 latent query</strong></td>
+<td><strong>否</strong></td>
+<td>仍需未来帧做训练监督；latent 可解释性弱</td>
+</tr>
+</tbody>
+</table>
+<p>论文给这个隐空间提了三个要求：足够紧凑以避免像素级冗余；足够表达以捕获动力学和 affordance；与动作生成紧密耦合，让未来建模服务于控制而不是视频保真度。</p>
+<hr/>
+<h2 id="3">3. 方法拆解</h2>
+<h3 id="31-latent-queries">3.1 第一步：插入 latent queries，给模型一个“思考槽”</h3>
+<p>在 Transformer 的输入序列里，把一小组可学习 query 插在“多模态上下文”和“动作 chunk”之间：</p>
+<pre><code class="language-text">S = [x; o_{-H:0}; s; Q; a_{0:T}]
+</code></pre>
+<p>其中 <code>x</code> 是指令，<code>o_{-H:0}</code> 是长度 H 的观测历史，<code>s</code> 是机器人状态，<code>Q ∈ R^{K×d}</code> 是 K 个 latent query，<code>a_{0:T}</code> 是长度为 T 的动作 chunk。这些 query 与指令、观测、状态、动作一起逐层传播：通过多层注意力，它们逐步聚合任务相关信息，组织成动作导向的隐状态，再反过来塑造动作生成。</p>
+<p>但论文明确指出：<strong>只靠动作监督，latent 不一定会长出“未来”</strong>。它可能塌缩成一个弱的中间表示，或者只编码足以局部解码动作的浅层线索。所以还需要下一步。</p>
+<h3 id="311">3.1.1 输入序列的整体排列</h3>
+<p>论文 Eq. (1) 给的是单分支的排列：</p>
+<pre><code class="language-text">S = [x; o_{-H:0}; s; Q; a_{0:T}]
+
+展开：
+[语言指令 x] [观测历史 o（H=4 帧）] [状态 s] [Q1 … Q16] [带噪动作 a_t（T=20）]
+</code></pre>
+<p><strong>动作 token 在 16 个 Q 后面，位于序列末尾。</strong> 不是插在 Q 中间，也不是在 Q 前面。</p>
+<table>
+<thead>
+<tr>
+<th>位置</th>
+<th>内容</th>
+<th>数量</th>
+<th>处理方</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>语言指令 x</td>
+<td>变长语言 token</td>
+<td>Understanding Expert（InternVL3.5）</td>
+</tr>
+<tr>
+<td>2</td>
+<td>观测历史 o</td>
+<td>H=4 帧；每帧视觉 token 数由 V-JEPA2.1 决定（论文未给具体数）</td>
+<td>Understanding Expert</td>
+</tr>
+<tr>
+<td>3</td>
+<td>机器人状态 s</td>
+<td>1 个或少量状态 token</td>
+<td>Action Expert（Qwen3）</td>
+</tr>
+<tr>
+<td>4</td>
+<td>latent queries Q</td>
+<td>16 个</td>
+<td>论文未明确；作为 latent reasoning 接口</td>
+</tr>
+<tr>
+<td>5</td>
+<td>带噪动作 a_t</td>
+<td>T=20 个动作 token</td>
+<td>Action Expert</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>一句话</strong>：Q 是动作前的 16 个“思考槽”，动作 token 紧跟在它们后面；动作头读的是 action token 位置的隐状态，不是 16 个 Q 的 last hidden state。</p>
+</blockquote>
+<p>训练时 posterior 分支在同样的位置把 Q 换成 Z：</p>
+<pre><code class="language-text">Prior:     [x; o; s; Q1 … Q16; a_t^1 … a_t^20]
+Posterior: [x; o; s; Z1 … Z16; a_t^1 … a_t^20]
+</code></pre>
+<p>两支打包进同一个序列时，共享 context 放在前面，分支专属 token 各自成组：</p>
+<pre><code class="language-text">[共享 context: x, o, s] [Q1…Q16] [a_prior] [Z1…Z16] [a_post]
+</code></pre>
+<p>共享 context 两支都可见；Q/prior 动作与 Z/post 动作之间被 attention mask 隔开。具体拼接顺序论文没有规定，图中是并排展示。</p>
+<p><strong>注意三点：</strong></p>
+<ol>
+<li>这不是把一整串 token 喂给同一个 dense LLM，而是 MoT：语言/视觉走 Understanding Expert，状态/动作走 Action Expert。</li>
+<li>Q 归哪个 expert，论文没有明确写；能确定的是它在序列里位于 action tokens 之前，并通过 attention 影响动作。</li>
+<li>动作 chunk 是 T=20；动作头在 action token 位置输出 flow-matching 速度场，积分后得到动作。Q 不参与动作读出位置，只作为条件。</li>
+</ol>
+<h3 id="32">3.2 第二步：训练期双分支，让未来观测当“老师”</h3>
+<p>论文构造了两个结构完全匹配的分支，共享同一套上下文、backbone 和动作生成通路：</p>
+<ul>
+<li><strong>Prior 分支（可部署）</strong>：只用当前指令、观测历史、状态 + 可学习 latent queries 来生成动作。</li>
+<li><strong>Posterior 分支（仅训练）</strong>：能访问未来观测。它把 latent queries 替换成同样形状的未来 embedding，其余结构不变。未来观测先过<strong>冻结的预训练 ViT</strong>，再由 <strong>Perceiver resampler</strong> 聚合成 K 个 future embeddings。</li>
+</ul>
+<p>两条分支都接受动作监督，因此自然形成两种视角：prior 学“如何从当前上下文组织出推理状态再行动”；posterior 则揭示“未来里哪些信息对动作决策真正有用”。</p>
+<p><a href="being-h07-branches.png"><img alt="Being-H0.7 双分支训练与单分支推理" src="being-h07-branches.png"/></a></p>
+<p><em>图：Prior 在 16 个槽位放可学习 query Q；Posterior 在同样位置放未来 embedding Z。两支共享 context 和同一套权重，只在最后 9 层对齐 <code>h_prior</code> 与 <code>h_post</code>。推理时 posterior、Z、未来观测全部移除，Q 保留。</em></p>
+<h3 id="33">3.3 第三步：隐状态对齐，把未来蒸馏进当前推理</h3>
+<p>在最后 L 层、latent 位置上，对两条分支的 hidden states 做逐元素对齐：</p>
+<pre><code class="language-text">L_align = (1/L) Σ_l (1/|h_l|) || h_l^prior − h_l^post ||_F²
+</code></pre>
+<p>关键设计是：两条分支<strong>不允许直接互相 attention</strong>，唯一的耦合就是这个对齐损失。于是 posterior 的“未来知识”只能通过共享上下文和对齐梯度，被蒸馏进 prior 的 latent queries。训练完成后，posterior 整个丢弃，推理时只保留 prior，零未来帧生成。</p>
+<p>可以把它类比成非对称的 teacher-student / privileged information 学习：未来观测是训练期才有的特权信息，目标不是让学生复现未来像素，而是让学生在当前上下文里“像看过未来一样思考”。</p>
+<h3 id="34">3.4 第四步：防塌缩正则</h3>
+<p>只做对齐可能退化成平凡解：两条分支的隐状态一起缩小幅度或丢掉方向多样性。论文加了两个轻量正则：</p>
+<ul>
+<li><strong>范数保持</strong>：<code>R_norm(h) = [ReLU(τ − ||h||_2)]²</code>，防止对齐后的状态幅度趋近于零。</li>
+<li><strong>谱多样性</strong>：把同一分支、同一对齐层的多组 latent 状态投影到随机 n 维子空间，行归一化后算 Gram 矩阵，对其归一化特征值谱 <code>p_i</code> 计算负谱熵 <code>R_rank(H) = Σ_i p_i log p_i</code>。最小化它等价于让谱更平坦，鼓励隐空间各方向都被使用，防止方向坍塌。</li>
+</ul>
+<p>总正则：<code>L_reg = w_norm · R_norm + w_rank · R_rank</code>。</p>
+<h3 id="35">3.5 工程实现：一次前向跑完两条分支</h3>
+<p>实现上沿用 Being-H0.5 的 Mixture-of-Transformers（MoT）：Understanding Expert（InternVL3.5）处理语言和视觉，Action Expert（Qwen3）处理状态和动作。两条分支被<strong>打包进同一个序列</strong>：</p>
+<ul>
+<li>当前上下文 tokens 两支共享；</li>
+<li>分支专属 tokens 占据不同的 latent 位置（prior 放 latent query，posterior 放 future embedding）；</li>
+<li><strong>dual-branch attention mask</strong>：共享上下文对两支可见，但 prior 与 posterior 的 token 彼此不可见；</li>
+<li>对应位置分配<strong>相同的 positional ID</strong>，保证两支在 Transformer 各层结构上严格对齐。</li>
+</ul>
+<p>这样一次 backbone forward 就同时训练两支，避免了两次独立前向。动作生成用 flow matching，两支各算一份速度场损失：<code>L_FM = L_FM^prior + L_FM^post</code>。最终目标：</p>
+<pre><code class="language-text">L = L_FM^prior + L_FM^post + w_align · L_align + L_reg
+</code></pre>
+<h3 id="36">3.6 训练配置速查</h3>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>设置</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基础模型</td>
+<td>Being-H0.5；InternVL3.5（Understanding Expert）+ Qwen3（Action Expert）</td>
+</tr>
+<tr>
+<td>视觉编码器</td>
+<td>context 与 future 都用 V-JEPA2.1；context encoder 可训练，future encoder 冻结</td>
+</tr>
+<tr>
+<td>输入分辨率</td>
+<td>context 224×224；future 256×256；仅 RGB</td>
+</tr>
+<tr>
+<td>关键超参</td>
+<td>观测历史 H=4；动作 chunk T=20；latent query K=16；对齐最后 L=9 层</td>
+</tr>
+<tr>
+<td>损失权重</td>
+<td>w_align = 1e-3；w_norm = w_rank = 1e-4</td>
+</tr>
+<tr>
+<td>预训练数据</td>
+<td>UniHand 2.0 统一序列格式，混合人类与机器人操作轨迹；项目主页称 20 万小时第一人称人类视频 + 1.5 万小时机器人示范（论文正文只写 large-scale，未给精确数字）</td>
+</tr>
+<tr>
+<td>下游 post-training</td>
+<td>只优化动作目标 + latent alignment，不再用防塌缩正则；sequence packing，全局 batch 约 128 个 trajectory chunk</td>
+</tr>
+<tr>
+<td>模型规模</td>
+<td>3B</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2 id="4-q-loss">4. 训练目标：Q、两个分支和 loss</h2>
+<p>这一节把最容易混淆的几个点单独拎出来。</p>
+<h3 id="41-q">4.1 Q 是不是一直存在？</h3>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>Q</th>
+<th>Z</th>
+<th>posterior 分支</th>
+<th>未来观测</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>预训练</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓（只训练）</td>
+<td>✓（只训练）</td>
+</tr>
+<tr>
+<td>后训练</td>
+<td>✓</td>
+<td>✓</td>
+<td>✓（只训练）</td>
+<td>✓（只训练）</td>
+</tr>
+<tr>
+<td>推理</td>
+<td>✓</td>
+<td>✗</td>
+<td>✗</td>
+<td>✗</td>
+</tr>
+</tbody>
+</table>
+<p>Q 是模型参数的一部分（16×d 的 <code>nn.Parameter</code>），在 prior 分支的预训练、后训练、推理中一直存在；posterior 分支在同样的 16 个槽位放的是 Z，不是 Q。推理时丢掉的是 Z、posterior 和未来编码器，Q 保留。</p>
+<blockquote>
+<p><strong>一个类比</strong>：同一套权重 = 同一个学生做两遍同一道题。第一遍（prior）只看题目，用 16 张空白草稿纸 Q 推理解题；第二遍（posterior）题目一样，但允许看未来提示 Z。两遍答案都对着标准答案（真实动作）打分；老师额外要求第一遍草稿纸上的推理过程接近第二遍。考试（推理）时只做第一遍：Q 还在，Z、第二遍和未来观测都不在。</p>
+</blockquote>
+<h3 id="42">4.2 一次训练迭代发生什么</h3>
+<ol>
+<li>采样一条示范：当前 context <code>c</code>（指令 + 4 帧 + 状态）、未来观测 <code>f</code>、真实动作 chunk <code>a</code>。</li>
+<li><strong>Prior</strong>：<code>c + Q</code> → 预测去噪速度 <code>v_prior</code>；和目标速度 <code>u_t = a − ε</code> 算 MSE，得到 <code>L_FM^prior</code>。</li>
+<li><strong>Posterior</strong>：<code>f → 冻结 ViT + Perceiver → Z</code>；<code>c + Z</code> → 预测 <code>v_post</code>；和同一条目标速度 <code>u_t</code> 算 MSE，得到 <code>L_FM^post</code>。</li>
+<li><strong>对齐</strong>：最后 9 层、16 个槽位，算 <code>L_align = mean((h_prior − h_post)²)</code>。</li>
+<li><strong>总 loss 反传</strong>：<code>L = L_FM^prior + L_FM^post + w_align · L_align + L_reg</code>。</li>
+</ol>
+<h3 id="43-loss">4.3 四种 loss 分别是什么</h3>
+<table>
+<thead>
+<tr>
+<th>项</th>
+<th>谁和谁比</th>
+<th>作用</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>L_FM^prior</td>
+<td>prior 预测的去噪速度 vs 目标速度 <code>u_t = a − ε</code></td>
+<td>让部署分支会做动作</td>
+</tr>
+<tr>
+<td>L_FM^post</td>
+<td>posterior 预测的去噪速度 vs 同一条目标速度</td>
+<td>让 <code>h_post</code> 是“对动作有用”的未来信息</td>
+</tr>
+<tr>
+<td>L_align</td>
+<td><code>h_prior</code> vs <code>h_post</code>，最后 9 层 × 16 槽位</td>
+<td>把未来感知蒸馏进 prior</td>
+</tr>
+<tr>
+<td>L_reg</td>
+<td>隐状态自身范数 + 谱熵</td>
+<td>防止对齐塌缩，权重 1e-4</td>
+</tr>
+</tbody>
+</table>
+<p>注意：两个动作 loss 比的都是示范里的同一条真实动作 chunk，不是未来视频。未来视频只用来生成 Z，Z 只是 posterior 的输入。</p>
+<pre><code class="language-text">未来视频 f → 冻结 ViT + Perceiver → Z → posterior → h_post
+                                                      │  L_align
+当前 context c + Q → prior → h_prior ─────────────────┘
+</code></pre>
+<h3 id="44">4.4 三个容易搞错的点</h3>
+<ol>
+<li><strong>不是把 Q 换成一个独立的 teacher 模型。</strong> posterior 是同一套权重、同一个序列里的另一条分支；不是先训 teacher 再蒸馏，而是联合训练、联合对齐。</li>
+<li><strong>不是拿 Q 和未来视频算 loss。</strong> 整篇论文没有像素/视频重建 loss；未来视频只用来生成 Z，Z 只是 posterior 的输入；对齐目标是 <code>h_post</code>，不是 Z，也不是像素。</li>
+<li><strong>不是只比最后一层 hidden state。</strong> 是最后 9 层、16 个槽位，逐层逐槽位 MSE。</li>
+</ol>
+<h3 id="45-posterior-loss">4.5 为什么 posterior 也要动作 loss</h3>
+<p>为了让 <code>h_post</code> 编码“对动作有用的未来信息”，而不是随便什么未来细节。动作 loss 把 posterior 的隐状态约束在能指导动作的方向上；prior 的动作 loss 保证部署分支本身会做动作；对齐 loss 再把 <code>h_post</code> 的未来感知搬进 <code>h_prior</code>。</p>
+<h3 id="46">4.6 一个值得注意的权重细节</h3>
+<p>两个动作 loss 的权重都是 1，对齐 loss 只有 1e-3，防塌缩正则 1e-4。动作预测是主任务，未来对齐是很轻的辅助正则。这也让“latent 对齐到底贡献多少”成为需要消融验证的问题。</p>
+<hr/>
+<h2 id="5">5. 实验结果</h2>
+<h3 id="51-benchmark">5.1 仿真：六个 benchmark</h3>
+<p><strong>LIBERO / RoboCasa / GR1</strong></p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>规模</th>
+<th>LIBERO</th>
+<th>LIBERO-plus</th>
+<th>LIBERO-plus*</th>
+<th>RoboCasa-50</th>
+<th>GR1</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>π0.5</td>
+<td>3B</td>
+<td>96.9</td>
+<td>77.4</td>
+<td>-</td>
+<td>41.4</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Being-H0.5</td>
+<td>2B</td>
+<td>98.9</td>
+<td>78.5</td>
+<td>83.1</td>
+<td>53.5</td>
+<td>-</td>
+</tr>
+<tr>
+<td>MINT-4B</td>
+<td>4B</td>
+<td>98.7</td>
+<td>80.1</td>
+<td>84.1</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ABot-M0</td>
+<td>4B</td>
+<td>98.6</td>
+<td>80.5</td>
+<td>-</td>
+<td>-</td>
+<td>58.3</td>
+</tr>
+<tr>
+<td>Fast-WAM</td>
+<td>6B</td>
+<td>97.6</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>LingBot-VA</td>
+<td>5B</td>
+<td>98.5</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>Cosmos-Policy</td>
+<td>2B</td>
+<td>98.5</td>
+<td>-</td>
+<td>-</td>
+<td>67.1</td>
+<td>-</td>
+</tr>
+<tr>
+<td><strong>Being-H0.7</strong></td>
+<td><strong>3B</strong></td>
+<td><strong>99.2</strong></td>
+<td><strong>82.1</strong></td>
+<td><strong>84.8</strong></td>
+<td><strong>62.1</strong></td>
+<td><strong>49.2</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>CALVIN / RoboTwin2</strong></p>
+<table>
+<thead>
+<tr>
+<th>模型</th>
+<th>规模</th>
+<th>CALVIN</th>
+<th>CALVIN*</th>
+<th>RoboTwin2 (Easy/Hard)</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>π0.5</td>
+<td>3B</td>
+<td>4.06</td>
+<td>4.13</td>
+<td>82.7 / 76.8</td>
+</tr>
+<tr>
+<td>Being-H0.5</td>
+<td>2B</td>
+<td>4.63</td>
+<td>4.48</td>
+<td>-</td>
+</tr>
+<tr>
+<td>MINT-4B</td>
+<td>4B</td>
+<td>4.57</td>
+<td>-</td>
+<td>-</td>
+</tr>
+<tr>
+<td>ABot-M0</td>
+<td>4B</td>
+<td>-</td>
+<td>-</td>
+<td>86.1 / 85.1</td>
+</tr>
+<tr>
+<td>Fast-WAM</td>
+<td>6B</td>
+<td>-</td>
+<td>-</td>
+<td>91.9 / 91.8</td>
+</tr>
+<tr>
+<td>LingBot-VA</td>
+<td>5B</td>
+<td>-</td>
+<td>-</td>
+<td>92.9 / 91.6</td>
+</tr>
+<tr>
+<td><strong>Being-H0.7</strong></td>
+<td><strong>3B</strong></td>
+<td><strong>4.67</strong></td>
+<td><strong>4.48</strong></td>
+<td><strong>90.2 / 89.6</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>怎么读这张表</strong>：论文的核心主张是“<strong>最高平均排名</strong>”和“<strong>没有短板</strong>”，而不是每个单项都第一。逐项看会更准确：</p>
+<ul>
+<li><strong>领先项</strong>：LIBERO 99.2（第一）、LIBERO-plus 82.1（第一）、LIBERO-plus<em> 84.8（第一）、CALVIN 4.67（第一）；CALVIN</em> 4.48 与 Being-H0.5 并列第一。</li>
+<li><strong>非第一</strong>：RoboCasa 62.1 低于 Cosmos-Policy 的 67.1；GR1 49.2 低于 ABot-M0 的 58.3；RoboTwin2 90.2/89.6 低于 LingBot-VA 的 92.9/91.6 和 Fast-WAM 的 91.9/91.8。</li>
+<li><strong>真正的卖点</strong>：在一个模型上同时覆盖桌面操作、双臂人形、长程序列、环境扰动和跨环境零样本，且每个维度都接近或达到前沿——这种“全能型”比单榜 SOTA 更难。</li>
+<li><strong>鲁棒性</strong>：RoboTwin2 从 Easy 到 Hard 只掉 0.6 个点（90.2→89.6），说明对域随机化不敏感。</li>
+</ul>
+<h3 id="52-3-12-5">5.2 真机：3 平台 × 12 任务 × 5 能力维度</h3>
+<table>
+<thead>
+<tr>
+<th>平台</th>
+<th>类型</th>
+<th>身体 DoF</th>
+<th>手</th>
+<th>总 DoF</th>
+<th>相机</th>
+<th>策略频率</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PND Adam-U</td>
+<td>上半身人形</td>
+<td>19</td>
+<td>Linkerbot O6（6 DoF）×2</td>
+<td>31</td>
+<td>2 个第一人称</td>
+<td>20 Hz</td>
+</tr>
+<tr>
+<td>Unitree G1</td>
+<td>双臂人形</td>
+<td>14</td>
+<td>Linkerbot O6（6 DoF）×2</td>
+<td>26</td>
+<td>1 个第一人称</td>
+<td>10 Hz</td>
+</tr>
+<tr>
+<td>Franka FR3</td>
+<td>单臂桌面</td>
+<td>7</td>
+<td>Linkerbot O6（6 DoF）×1</td>
+<td>13</td>
+<td>1 外置 + 1 腕部</td>
+<td>20 Hz</td>
+</tr>
+</tbody>
+</table>
+<p>12 个任务覆盖 5 个能力套件：</p>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>平台</th>
+<th>主套件</th>
+<th>任务</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>01</td>
+<td>Franka FR3</td>
+<td>Dynamic Scene</td>
+<td>在球滚出 capture area 之前接住快球</td>
+</tr>
+<tr>
+<td>02</td>
+<td>PND Adam-U</td>
+<td>Physical Reasoning</td>
+<td>用移液枪把液体从源容器转移到目标容器</td>
+</tr>
+<tr>
+<td>03</td>
+<td>Unitree G1</td>
+<td>Motion Reasoning</td>
+<td>用球拍击球，使球落入标记区域</td>
+</tr>
+<tr>
+<td>04</td>
+<td>PND Adam-U</td>
+<td>Physical Reasoning</td>
+<td>把烧杯中的液体经漏斗倒入接收容器</td>
+</tr>
+<tr>
+<td>05</td>
+<td>Unitree G1</td>
+<td>Dynamic Scene</td>
+<td>把杯中物体倒入移动的目标容器</td>
+</tr>
+<tr>
+<td>06</td>
+<td>Franka FR3</td>
+<td>Dynamic Scene</td>
+<td>从移动传送带取货并放到正确货架层</td>
+</tr>
+<tr>
+<td>07</td>
+<td>PND Adam-U</td>
+<td>Physical Reasoning</td>
+<td>把衣物整齐折叠成目标形状</td>
+</tr>
+<tr>
+<td>08</td>
+<td>Unitree G1</td>
+<td>Long Horizon</td>
+<td>在移动传送带上扫码并分拣包裹到正确目的地</td>
+</tr>
+<tr>
+<td>09</td>
+<td>Unitree G1</td>
+<td>Long Horizon</td>
+<td>把鞋撑插入鞋内并把鞋放到传送带</td>
+</tr>
+<tr>
+<td>10</td>
+<td>PND Adam-U</td>
+<td>Long Horizon</td>
+<td>从传送带取鞋并装箱</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Franka FR3</td>
+<td>Generalization</td>
+<td>把桌面物体放到正确的抽屉层</td>
+</tr>
+<tr>
+<td>12</td>
+<td>Franka FR3</td>
+<td>Physical Reasoning</td>
+<td>拿起锤子把钉子敲入孔中</td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th>能力套件</th>
+<th>Being-H0.7</th>
+<th>Being-H0.5</th>
+<th>π0.5</th>
+<th>Fast-WAM</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dynamic Scene</td>
+<td><strong>70.0</strong></td>
+<td>47.5</td>
+<td>49.2</td>
+<td>58.3</td>
+</tr>
+<tr>
+<td>Physical Reasoning</td>
+<td><strong>66.9</strong></td>
+<td>59.4</td>
+<td>55.0</td>
+<td>46.9</td>
+</tr>
+<tr>
+<td>Motion Reasoning</td>
+<td><strong>67.5</strong></td>
+<td>46.7</td>
+<td>45.8</td>
+<td>57.5</td>
+</tr>
+<tr>
+<td>Long Horizon</td>
+<td><strong>66.7</strong></td>
+<td>60.6</td>
+<td>56.1</td>
+<td>45.0</td>
+</tr>
+<tr>
+<td>Generalization</td>
+<td><strong>67.5</strong></td>
+<td>57.5</td>
+<td>58.3</td>
+<td>49.2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>解读</strong>：五个套件全部领先。最明显的优势在 <strong>Dynamic Scene</strong>（70.0 vs 最强基线 58.3）和 <strong>Motion Reasoning</strong>（67.5 vs 57.5）——这两类任务最吃“预判”，正好对应 latent future 的价值：接滚球、球拍击球、倒入移动容器、传送带交互，一旦状态估计过时，物体出了可交互窗口就立刻失败。Physical Reasoning 和 Long Horizon 上最接近的基线是 Being-H0.5，说明稳定的操作先验和分阶段一致性仍然是基础；Being-H0.7 在此之上还能领先，说明未来感知的先验没有牺牲因果一致性。</p>
+<p><strong>评测协议</strong>：所有策略走统一的 black-box 推理服务，场景布局和初始条件预定义，策略端点和 rollout 顺序随机化，操作员按固定二元标准判定成功，每任务 20 次盲测，且被测策略对操作员隐藏。这比“作者自己跑自己的模型”更可信，但仍是单团队自建场景与判定标准。</p>
+<h3 id="53-latent-wam">5.3 部署成本：latent WAM 的真正卖点</h3>
+<table>
+<thead>
+<tr>
+<th>配置</th>
+<th>平均推理延迟（ms/step）</th>
+<th>GPU 显存（GB）</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Being-H0.5 + UAC</td>
+<td>3.45</td>
+<td>5.6</td>
+</tr>
+<tr>
+<td>Being-H0.7 + UAC</td>
+<td>3.61</td>
+<td>5.6</td>
+</tr>
+<tr>
+<td>π0.5（TC-R）</td>
+<td>12.45</td>
+<td>9.3</td>
+</tr>
+<tr>
+<td>Being-H0.5（无 UAC）</td>
+<td>17.12</td>
+<td>6.8</td>
+</tr>
+<tr>
+<td>Being-H0.7（无 UAC）</td>
+<td>28.81</td>
+<td>6.8</td>
+</tr>
+<tr>
+<td>Fast-WAM</td>
+<td>41.26</td>
+<td>15.6</td>
+</tr>
+</tbody>
+</table>
+<p><strong>UAC（Universal Async Chunking）是什么</strong>：客户端维护线程安全的动作 buffer，并实时估计“下一 chunk 到位前还要消耗多少控制步”。控制线程按机器人频率从已提交的 prefix 里取动作；推理线程在 buffer 低于阈值时醒来，取最新观测、向服务器请求下一 chunk。核心规则是<strong>已提交的 prefix 绝不改写</strong>，只把未来 suffix 按估计延迟接回 buffer。这种 prefix-lock / suffix-update 设计吸收了模型、传输、调度的抖动，把 chunked prediction 变成连续控制。</p>
+<p><strong>怎么理解 3–4 ms</strong>：这是 UAC 后的“暴露步延迟”（系统级），不是单次模型前向时间。论文明确说延迟和显存是在同一套部署栈下测的，所以横向比较有意义；但不要把它当成“模型推理只要 3.6ms”。真正的前向成本看无 UAC 那一列：Being-H0.7 28.81ms，低于 Fast-WAM 的 41.26ms，但高于 π0.5 的 12.45ms。3B vs 6B 的规模差也要一起看。</p>
+<hr/>
+<h2 id="6">6. 评价</h2>
+<h3 id="61">6.1 值得肯定的地方</h3>
+<ol>
+<li><strong>问题选得准</strong>：把“世界模型该在什么空间建模”从像素空间推到隐空间，论证链条完整——目标错配、像素欠定、训练/推理成本，三点都站得住。</li>
+<li><strong>方法简洁可落地</strong>：16 个 query + 一个训练期 teacher 分支 + 一个对齐损失，没有视频生成器；工程上用单序列 MoT + attention mask + 共享 position ID，干净且高效。</li>
+<li><strong>监督信号巧妙</strong>：未来观测是天然的 privileged information，视频里本来就有，不需要额外标注。相比“预测未来帧”，这更接近 JEPA / 世界模型的本意：学表征，不学像素。</li>
+<li><strong>评测覆盖面广</strong>：6 个仿真 benchmark + 3 个真机平台 + 12 个任务 + 5 个能力维度 + 延迟/显存，而且真机采用盲测。比单榜 SOTA 更能说明通用性。</li>
+<li><strong>部署友好</strong>：UAC 后 3–4ms 暴露延迟，与 VLA 同级，明显优于 test-time rollout 的 WAM；显存 5.6GB 也远低于 Fast-WAM 的 15.6GB。</li>
+</ol>
+<h3 id="62">6.2 需要保留的疑问</h3>
+<ol>
+<li><strong>不是每个 benchmark 都第一</strong>：RoboCasa 62.1 &lt; Cosmos-Policy 67.1；GR1 49.2 &lt; ABot-M0 58.3；RoboTwin2 90.2/89.6 &lt; LingBot-VA 92.9/91.6 和 Fast-WAM 91.9/91.8。论文的主张是“最高平均排名 + 无短板”，读的时候不要把 “best average rank” 误读成“全面 SOTA”。</li>
+<li><strong>没有消融实验</strong>：正文没有给出 K、L、w_align、两个正则项、posterior 分支有无的消融。因此“latent 对齐到底贡献了多少”缺少直接的因果证据，目前主要靠与 Being-H0.5 的整体对比和可视化支撑。这是全文最大的方法论空缺。</li>
+<li><strong>真机规模仍有限</strong>：12 个任务 × 每任务 20 trials，场景和成功判定由作者团队自建；跨实验室复现性未知。部分套件的提升只有几个点，论文没有报告置信区间或统计显著性。</li>
+<li><strong>数据与算力不透明</strong>：20 万小时人类视频 + 1.5 万小时机器人数据的筛选、质量、配比、训练成本都没有披露。代码已开源，但数据管线是否可复现存疑。</li>
+<li><strong>future embedding 的质量依赖</strong>：posterior 用冻结 V-JEPA2.1 + Perceiver resampler，K=16 是明显的信息瓶颈；如果未来帧本身模糊、多模态或与动作无关，对齐目标就会带噪声。论文没有分析失败模式或对齐目标的退化情况。</li>
+<li><strong>latent 可视化是弱证据</strong>：外部视频生成器能解码出合理未来，只能说明 latent 含有未来信息，不能证明这些信息就是动作所需的因果变量；生成图也可能被生成器的先验“补全”。</li>
+<li><strong>延迟口径要小心</strong>：3.61ms 是 UAC 后的系统级暴露延迟，不是模型前向时间；无 UAC 的 Being-H0.7 是 28.81ms，仍高于 π0.5 的 12.45ms。比较时要区分“模型快”和“系统调度掩盖了模型慢”。</li>
+</ol>
+<h3 id="63">6.3 适用边界</h3>
+<ul>
+<li><strong>适合</strong>：动态场景、接触密集、长程多阶段、需要预判但算力和延迟敏感的真机部署；有大量人类视频、机器人示范相对有限的数据条件；跨形态（单臂 / 双臂 / 人形）的统一策略。</li>
+<li><strong>需谨慎</strong>：需要精确几何或物理量（间隙、力、位姿精度）的任务，latent 可能丢失细粒度空间信息；未来高度多模态的任务，单一 future embedding 可能模式平均；安全关键场景，latent 中间变量不可读、难审计。</li>
+</ul>
+<hr/>
+<h2 id="7">7. 关键信息速查</h2>
+<table>
+<thead>
+<tr>
+<th>项目</th>
+<th>内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>论文</td>
+<td>Being-H0.7: A Latent World-Action Model from Egocentric Videos</td>
+</tr>
+<tr>
+<td>作者</td>
+<td>Hao Luo*、Wanpeng Zhang*、Yicheng Feng*、Sipeng Zheng*、Haiweng Xu、Chaoyi Xu、Ziheng Xi、Yuhui Fu、Zongqing Lu†</td>
+</tr>
+<tr>
+<td>机构 / venue</td>
+<td>BeingBeyond（智在无界）；项目页标注 NeurIPS 2026；arXiv 2605.00078</td>
+</tr>
+<tr>
+<td>模型规模</td>
+<td>3B；InternVL3.5（Understanding Expert）+ Qwen3（Action Expert）；V-JEPA2.1 视觉编码器</td>
+</tr>
+<tr>
+<td>预训练数据</td>
+<td>约 20 万小时第一人称人类视频 + 1.5 万小时机器人示范（项目页口径）；UniHand 2.0 统一序列格式</td>
+</tr>
+<tr>
+<td>核心超参</td>
+<td>H=4；T=20；K=16；对齐最后 L=9 层；w_align=1e-3；w_norm=w_rank=1e-4</td>
+</tr>
+<tr>
+<td>推理特性</td>
+<td>无未来帧生成、无像素 rollout、无视频生成器；posterior 分支训练后丢弃</td>
+</tr>
+<tr>
+<td>仿真成绩</td>
+<td>LIBERO 99.2；LIBERO-plus 82.1 / 84.8；RoboCasa 62.1；GR1 49.2；CALVIN 4.67 / 4.48；RoboTwin2 90.2 / 89.6</td>
+</tr>
+<tr>
+<td>真机成绩</td>
+<td>3 平台、12 任务、5 个能力套件全部领先（Dynamic 70.0 / Physical 66.9 / Motion 67.5 / Long 66.7 / Generalization 67.5）</td>
+</tr>
+<tr>
+<td>部署成本</td>
+<td>UAC 后 3.61 ms/step、5.6 GB；无 UAC 28.81 ms/step、6.8 GB</td>
+</tr>
+</tbody>
+</table>
+<hr/>
+<h2 id="_1">参考</h2>
+<ul>
+<li>论文 PDF：<a href="https://research.beingbeyond.com/projects/being-h07/being-h07.pdf">https://research.beingbeyond.com/projects/being-h07/being-h07.pdf</a></li>
+<li>项目主页：<a href="https://research.beingbeyond.com/being-h07">https://research.beingbeyond.com/being-h07</a></li>
+<li>代码：<a href="https://github.com/BeingBeyond/Being-H">https://github.com/BeingBeyond/Being-H</a></li>
+</ul></article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  回到页面顶部
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "navigation.indexes", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+<script src="../../javascripts/mathjax.js"></script>
+<script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>
