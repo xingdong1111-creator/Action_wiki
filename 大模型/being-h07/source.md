@@ -5,7 +5,12 @@
 > **代码**：[github.com/BeingBeyond/Being-H](https://github.com/BeingBeyond/Being-H)  
 > **作者**：Hao Luo\*、Wanpeng Zhang\*、Yicheng Feng\*、Sipeng Zheng\*、Haiweng Xu、Chaoyi Xu、Ziheng Xi、Yuhui Fu、Zongqing Lu†（BeingBeyond / 智在无界）
 
-**一句话总结**：Being-H0.7 是 BeingBeyond 的第三代 VLA，3B 参数。它的核心主张是“世界模型不必生成像素”：在感知与动作之间插入 16 个可学习的 latent query，训练时用一个“看得到未来观测”的 posterior 分支当老师，把未来信息蒸馏进“只看当前观测”的 prior 分支；推理时 posterior 整个丢掉，不生成任何未来帧。
+**展开版总结**：Being-H0.7 是 BeingBeyond 的第三代 VLA，3B 参数。它的核心主张是“世界模型不必生成像素”：在感知与动作之间插入 16 个可学习的 latent query，训练时用一个“看得到未来观测”的 posterior 分支当老师，把未来信息蒸馏进“只看当前观测”的 prior 分支；推理时 posterior 整个丢掉，不生成任何未来帧。
+
+> **速记版一句话总结（来自飞书笔记）**  
+> VLA 中加了 16 个可学习 token 位置。序列：Text → 视频 → … → 自车状态 → 16 token → 20 action。  
+> 路 1：正常直接出 action export；路 2：把 16 token 替换成未来视频 → vision encoder → 出动作。  
+> Loss：两个动作和 GT 的差 + 16 token 位置上路 1 与路 2 的差。
 
 ---
 
