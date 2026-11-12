@@ -107,20 +107,39 @@ src/openpi/models/siglip.py        SigLIP 视觉编码器</code></pre>
 )</code></pre>
 <p><code>gemma.Module</code> 支持多个 expert，每个 expert 有自己的权重，token 按 expert 路由。</p>
 
-<h3 id="pi0-prefix">3.2 Prefix / Suffix 和 attention</h3>
-<p><strong>Prefix</strong>（<code>embed_prefix</code>）：</p>
+<h3 id="pi0-prefix">3.2 输入序列怎么拼</h3>
+<p><strong>Prefix</strong>（图像 + 指令）：</p>
+<pre><code>3 张图 × 每张 256 token = 768 个 image token
+prompt 最多 48 个 text token
+prefix = 768 + 48 = 816 个 token</code></pre>
+<p><strong>Suffix</strong>（状态 + 动作）：</p>
+<pre><code>π0:
+  1 个 state token
+  50 个 action token
+  suffix = 1 + 50 = 51 个 token
+
+π0.5:
+  state 离散化后放进 prompt
+  suffix = 50 个 action token</code></pre>
+<p><strong>整体序列：</strong></p>
+<pre><code>π0:   [prefix 816] + [suffix 51] = 867 个 token
+π0.5: [prefix 968] + [suffix 50] = 1018 个 token</code></pre>
+<p><strong>time 怎么进去：</strong></p>
 <ul>
-<li>图像过 SigLIP → image tokens</li>
-<li>prompt 过 Gemma embed → text tokens</li>
-<li>图像和文本之间是 <strong>full attention</strong>（<code>ar_mask</code> 全 False）</li>
+<li>π0：time embedding 不是单独 token，而是拼到每个 action token 的特征上：<code>1024 + 1024 → MLP → 1024</code>。</li>
+<li>π0.5：time 通过 adaRMSNorm 注入 action expert，不拼到 token 上。</li>
 </ul>
-<p><strong>Suffix</strong>（<code>embed_suffix</code>）：</p>
-<ul>
-<li>π0：一个 state token + noisy action tokens + timestep embedding</li>
-<li>π0.5：state 不进 suffix，而是放进离散语言 token；action expert 用 adaRMSNorm 注入 timestep</li>
-<li>suffix 内部是 <strong>causal attention</strong>，prefix 不能看 suffix</li>
-</ul>
-<p><code>make_attn_mask</code> 实现 prefix-LM 注意力：</p>
+<p><strong>Attention 谁看谁：</strong></p>
+<table>
+<thead><tr><th>Query</th><th>能看</th></tr></thead>
+<tbody>
+<tr><td>prefix</td><td>prefix（full attention）</td></tr>
+<tr><td>state</td><td>prefix + state</td></tr>
+<tr><td>action</td><td>prefix + state + 所有 action</td></tr>
+</tbody>
+</table>
+<p>也就是说：<strong>prefix 不能看 suffix；state 不能看 action；action 能看 prefix、state 和所有 action</strong>。这是 block-level causal，block 内是 full attention。</p>
+<p><code>make_attn_mask</code> 就是在实现这个 block 边界：</p>
 <pre><code class="language-python">attn_mask = cumsum[:, None, :] &lt;= cumsum[:, :, None]
 valid_mask = input_mask[:, None, :] * input_mask[:, :, None]
 return jnp.logical_and(attn_mask, valid_mask)</code></pre>

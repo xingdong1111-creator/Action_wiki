@@ -19,3 +19,12 @@ src/openpi/policies/policy.py
 src/openpi/policies/policy_config.py
 src/openpi/models_pytorch/pi0_pytorch.py
 ```
+
+## 输入序列怎么拼
+
+- prefix：3×256 图像 token + 最多 48 个 prompt token = 816
+- suffix（π0）：1 个 state token + 50 个 action token = 51
+- 整体：816 + 51 = 867 个 token
+- π0.5：state 离散进 prompt，suffix 只有 50 个 action token
+- time：π0 拼到每个 action token 特征上；π0.5 用 adaRMS
+- attention：prefix 不能看 suffix；state 不能看 action；action 能看 prefix、state 和所有 action
