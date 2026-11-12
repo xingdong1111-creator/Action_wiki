@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="zh" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>RL 相关：NFT Loss - Action</title>
+  <meta name="description" content="NFT Loss 的本质：用 advantage 作为软标签，动态调整正向/负向学习比例；包含 r 的推导、加权 Logit、prediction error 和高斯 logπ 的解释。">
+  <link rel="canonical" href="https://xingdong1111-creator.github.io/Action_wiki/%E5%A4%A7%E6%A8%A1%E5%9E%8B/nft-loss/">
+  <link rel="icon" href="../../assets/images/favicon.png">
+  <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+  <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+  <style>
+    body { margin: 0; }
+    .page-content { max-width: 980px; margin: 1.5rem auto 3rem; padding: 0 1.2rem; }
+    .page-content img { max-width: 100%; height: auto; }
+    .arithmatex { overflow-x: auto; }
+    .back-link { margin: 0 0 1rem; }
+  </style>
+</head>
+<body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../" title="Action" class="md-header__button md-logo" aria-label="Action" data-md-component="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+    </a>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic"><span class="md-ellipsis">Action</span></div>
+        <div class="md-header__topic" data-md-component="header-topic"><span class="md-ellipsis">RL 相关：NFT Loss</span></div>
+      </div>
+    </div>
+  </nav>
+</header>
+<main class="md-main" data-md-component="main">
+  <div class="page-content">
+    <article class="md-content__inner md-typeset">
+      <nav class="md-tags"><span class="md-tag">RL</span><span class="md-tag">NFT</span><span class="md-tag">Loss</span></nav>
+<h1 id="rl-nft-loss">RL 相关：NFT Loss</h1>
+<p><a href="../">← 返回大模型</a></p>
+
+<h2 id="nft-loss">nft loss</h2>
+<p>NFT Loss 的本质是：<strong>用 advantage 作为软标签，对每个样本动态调整“正向学习”和“负向学习”的比例，好样本多学正向，坏样本多学负向，所有样本一起训练。</strong></p>
+<p>其中的 <code>r</code> 就是把 advantage 压缩到 <code>[0, 1]</code>：</p>
+<div class="arithmatex">\[ r = \frac{\operatorname{clip}(A_t - 5, -5, 5)}{5} \times 0.5 + 0.5 = \frac{A_{\text{clip}} + 5}{10} \]</div>
+<p><img src="nft-table.png" alt="s 值与 r 的对应关系、加权 Logit 的计算"></p>
+
+<h3 id="weighted-logit">加权 Logit 的计算</h3>
+<pre><code class="language-python">weighted_logit = r * positive_pred_logit + (1 - r) * implicit_negative_pred_logit
+nft_loss = (weighted_logit / self.beta) * self.adv_clip_max</code></pre>
+<p>这里的关键是理解 <code>positive_pred_logit</code> 和 <code>implicit_negative_pred_logit</code> 到底是什么。根据 DiffusionNFT 论文，它们实际上是预测误差的平方：</p>
+<div class="arithmatex">\[ \text{positive\_pred\_logit} = \|v_\theta^+ - v\|^2 \]</div>
+<div class="arithmatex">\[ \text{implicit\_negative\_pred\_logit} = \|v_\theta^- - v\|^2 \]</div>
+<p>所以 <code>weighted_logit</code> 本质上就是论文中的损失函数：</p>
+<div class="arithmatex">\[ L = r \cdot \|v_\theta^+ - v\|^2 + (1-r) \cdot \|v_\theta^- - v\|^2 \]</div>
+<p>最后除以 <code>beta</code>（0.2）再乘以 <code>adv_clip_max</code>（5.0），相当于整体放大了 25 倍，目的是让 loss 的数值尺度更合理，便于训练。</p>
+
+<h2 id="logpi">关于 logπ：高斯正比</h2>
+<p>关于 <code>logπ</code>，这里用的是高斯正比。</p>
+<p><img src="nft-gaussian.png" alt="高斯分布、取对数、负对数似然与 prediction error 的关系"></p>
+<p>把预测建模成高斯：</p>
+<div class="arithmatex">\[ p_\theta(a \mid x) \propto \exp\left(-\frac{\|v_\theta(x_t) - a\|^2}{2\sigma^2}\right) \]</div>
+<p>取对数：</p>
+<div class="arithmatex">\[ \log \pi_\theta(a) = -\frac{\|v_\theta(x_t) - a\|^2}{2\sigma^2} + \text{const} \]</div>
+<p>所以：</p>
+<div class="arithmatex">\[ -\log \pi_\theta(a) \propto \|v_\theta(x_t) - a\|^2 \]</div>
+<p>这就是为什么 NFT loss 里的 “logit” = (prediction - a)² —— 它不是真的 logit，而是负对数似然的代理量。</p>
+
+    </article>
+  </div>
+</main>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] },
+  options: { ignoreHtmlClass: ".*|tex2jax_ignore", processHtmlClass: "arithmatex" }
+};
+</script>
+<script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</body>
+</html>
