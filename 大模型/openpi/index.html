@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="zh" class="no-js">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>π0 / openpi 代码分析 - Action</title>
+  <meta name="description" content="openpi（π0 / π0-FAST / π0.5）代码结构与架构分析：PaliGemma + action expert、prefix/suffix attention、flow matching、训练与推理。">
+  <link rel="canonical" href="https://xingdong1111-creator.github.io/Action_wiki/%E5%A4%A7%E6%A8%A1%E5%9E%8B/openpi/">
+  <link rel="icon" href="../../assets/images/favicon.png">
+  <link rel="stylesheet" href="../../assets/stylesheets/main.ec1eaa64.min.css">
+  <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+  <style>
+    body { margin: 0; }
+    .page-content { max-width: 1060px; margin: 1.5rem auto 3rem; padding: 0 1.2rem; }
+    .page-content img { max-width: 100%; height: auto; }
+    .arithmatex { overflow-x: auto; }
+    .toc { border: 1px solid #e0e0e0; border-radius: 6px; padding: .8rem 1.2rem; margin: 1rem 0 1.5rem; background: #fafafa; }
+    .toc ul { margin: .2rem 0; padding-left: 1.2rem; }
+    .toc li { margin: .15rem 0; }
+    pre code { font-size: .82rem; }
+  </style>
+</head>
+<body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="页眉">
+    <a href="../../" title="Action" class="md-header__button md-logo" aria-label="Action" data-md-component="logo">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+    </a>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic"><span class="md-ellipsis">Action</span></div>
+        <div class="md-header__topic" data-md-component="header-topic"><span class="md-ellipsis">π0 / openpi 代码分析</span></div>
+      </div>
+    </div>
+  </nav>
+</header>
+<main class="md-main" data-md-component="main">
+  <div class="page-content">
+    <article class="md-content__inner md-typeset">
+      <nav class="md-tags"><span class="md-tag">π0</span><span class="md-tag">openpi</span><span class="md-tag">VLA</span><span class="md-tag">代码分析</span></nav>
+<h1 id="pi-openpi">π0 / openpi 代码分析</h1>
+<p><a href="../">← 返回大模型</a></p>
+
+<div class="toc">
+<strong>目录</strong>
+<ul>
+<li><a href="#version">1. 版本与结论</a></li>
+<li><a href="#layout">2. 仓库地图</a></li>
+<li><a href="#pi0">3. π0 架构</a></li>
+<li><a href="#fast">4. π0-FAST</a></li>
+<li><a href="#pi05">5. π0.5 的差异</a></li>
+<li><a href="#training">6. 训练管线</a></li>
+<li><a href="#inference">7. 推理与部署</a></li>
+<li><a href="#pytorch">8. PyTorch 版</a></li>
+<li><a href="#reading">9. 关键文件阅读顺序</a></li>
+<li><a href="#questions">10. 待深入的问题</a></li>
+</ul>
+</div>
+
+<h2 id="version">1. 版本与结论</h2>
+<p>这次拉的是 <strong>Physical-Intelligence/openpi</strong>，commit <code>215abfb</code>，约 12.5k 行 Python。仓库不是单一模型，而是同时包含三代：</p>
+<table>
+<thead><tr><th>模型</th><th>类型</th><th>骨干/动作头</th><th>配置</th></tr></thead>
+<tbody>
+<tr><td><strong>π0</strong></td><td>flow matching VLA</td><td>PaliGemma 2B + Gemma 300M action expert</td><td><code>Pi0Config()</code></td></tr>
+<tr><td><strong>π0-FAST</strong></td><td>自回归 VLA</td><td>PaliGemma 2B + FAST action tokenizer</td><td><code>Pi0FASTConfig()</code></td></tr>
+<tr><td><strong>π0.5</strong></td><td>flow matching VLA</td><td>PaliGemma 2B + action expert，adaRMS + 离散 state</td><td><code>Pi0Config(pi05=True)</code></td></tr>
+</tbody>
+</table>
+<p><strong>最新的是 π0.5。</strong> 仓库里默认的 ALOHA / DROID / LIBERO 推理 checkpoint 基本都是 <code>pi05_*</code>；只有 ALOHA_SIM 的默认还是 <code>pi0_aloha_sim</code>。</p>
+
+<h2 id="layout">2. 仓库地图</h2>
+<table>
+<thead><tr><th>目录</th><th>内容</th></tr></thead>
+<tbody>
+<tr><td><code>src/openpi/models/</code></td><td>JAX/Flax 模型：<code>pi0.py</code>、<code>pi0_fast.py</code>、<code>gemma.py</code>、<code>siglip.py</code>、<code>lora.py</code>、<code>tokenizer.py</code></td></tr>
+<tr><td><code>src/openpi/models_pytorch/</code></td><td>PyTorch 版 π0 / π0.5：<code>pi0_pytorch.py</code>、<code>gemma_pytorch.py</code></td></tr>
+<tr><td><code>src/openpi/policies/</code></td><td>平台适配：ALOHA、DROID、LIBERO，以及 <code>Policy</code> 推理封装</td></tr>
+<tr><td><code>src/openpi/training/</code></td><td><code>config.py</code>、<code>data_loader.py</code>、<code>optimizer.py</code>、<code>sharding.py</code>、<code>checkpoints.py</code></td></tr>
+<tr><td><code>src/openpi/transforms.py</code></td><td>repack、normalize、tokenize、delta action、resize 等数据变换</td></tr>
+<tr><td><code>scripts/</code></td><td><code>train.py</code>、<code>serve_policy.py</code>、<code>compute_norm_stats.py</code></td></tr>
+<tr><td><code>examples/</code></td><td>ALOHA sim/real、DROID、LIBERO、UR5、simple client</td></tr>
+</tbody>
+</table>
+
+<h2 id="pi0">3. π0 架构</h2>
+<p>核心文件：</p>
+<pre><code>src/openpi/models/pi0.py:66        class Pi0
+src/openpi/models/pi0_config.py    Pi0Config
+src/openpi/models/gemma.py:340     class Module   # 双 expert Transformer
+src/openpi/models/siglip.py        SigLIP 视觉编码器</code></pre>
+
+<h3 id="pi0-backbone">3.1 PaliGemma + action expert</h3>
+<p>π0 是 <strong>PaliGemma + action expert</strong> 的 flow matching VLA：</p>
+<ul>
+<li><strong>PaliGemma 2B</strong>：SigLIP So400m/14 视觉编码器 + Gemma 2B 语言模型</li>
+<li><strong>Action expert</strong>：Gemma 300M，单独一套权重，和 PaliGemma 同深度（18 层），宽度 1024</li>
+<li>输入三路图像：<code>base_0_rgb</code>、<code>left_wrist_0_rgb</code>、<code>right_wrist_0_rgb</code>，224×224</li>
+<li>动作：<code>action_dim=32</code>，<code>action_horizon=50</code></li>
+</ul>
+<pre><code class="language-python">llm = nnx_bridge.ToNNX(
+    _gemma.Module(
+        configs=[paligemma_config, action_expert_config],
+        embed_dtype=config.dtype,
+        adarms=config.pi05,
+    )
+)</code></pre>
+<p><code>gemma.Module</code> 支持多个 expert，每个 expert 有自己的权重，token 按 expert 路由。</p>
+
+<h3 id="pi0-prefix">3.2 Prefix / Suffix 和 attention</h3>
+<p><strong>Prefix</strong>（<code>embed_prefix</code>）：</p>
+<ul>
+<li>图像过 SigLIP → image tokens</li>
+<li>prompt 过 Gemma embed → text tokens</li>
+<li>图像和文本之间是 <strong>full attention</strong>（<code>ar_mask</code> 全 False）</li>
+</ul>
+<p><strong>Suffix</strong>（<code>embed_suffix</code>）：</p>
+<ul>
+<li>π0：一个 state token + noisy action tokens + timestep embedding</li>
+<li>π0.5：state 不进 suffix，而是放进离散语言 token；action expert 用 adaRMSNorm 注入 timestep</li>
+<li>suffix 内部是 <strong>causal attention</strong>，prefix 不能看 suffix</li>
+</ul>
+<p><code>make_attn_mask</code> 实现 prefix-LM 注意力：</p>
+<pre><code class="language-python">attn_mask = cumsum[:, None, :] &lt;= cumsum[:, :, None]
+valid_mask = input_mask[:, None, :] * input_mask[:, :, None]
+return jnp.logical_and(attn_mask, valid_mask)</code></pre>
+
+<h3 id="pi0-flow">3.3 Flow matching loss</h3>
+<p><code>compute_loss</code>（<code>pi0.py:189</code>）：</p>
+<div class="arithmatex">\[ x_t = t \cdot \epsilon + (1-t) \cdot a,\quad u_t = \epsilon - a \]</div>
+<div class="arithmatex">\[ \mathcal{L} = \| v_\theta(x_t,t) - u_t \|^2 \]</div>
+<pre><code class="language-python">x_t = time_expanded * noise + (1 - time_expanded) * actions
+u_t = noise - actions
+v_t = self.action_out_proj(suffix_out[:, -self.action_horizon :])
+return jnp.mean(jnp.square(v_t - u_t), axis=-1)</code></pre>
+<p><code>t</code> 采样是 <code>Beta(1.5, 1) * 0.999 + 0.001</code>。</p>
+
+<h3 id="pi0-sampling">3.4 Sampling</h3>
+<p><code>sample_actions</code>（<code>pi0.py:217</code>）：</p>
+<ul>
+<li>先跑 prefix，填 KV cache</li>
+<li>从 <code>t=1</code> 到 <code>t=0</code>，默认 10 步</li>
+<li>每步 <code>x_t += dt * v_t</code></li>
+<li>注意代码里 <code>t=1</code> 是噪声、<code>t=0</code> 是目标，和论文相反，注释里也写了</li>
+</ul>
+
+<h2 id="fast">4. π0-FAST</h2>
+<p>核心文件：</p>
+<pre><code>src/openpi/models/pi0_fast.py:134   class Pi0FAST</code></pre>
+<p>π0-FAST 是 <strong>自回归 VLA</strong>，没有 action expert：</p>
+<ul>
+<li>用 FAST action tokenizer 把 action chunk 变成离散 token</li>
+<li>直接走 PaliGemma 2B，做 next-token prediction</li>
+<li><code>action_horizon=32</code>，<code>max_token_len=250</code></li>
+<li>loss 是 token-level cross entropy，带 <code>token_loss_mask</code></li>
+<li>推理是 KV-cache 自回归解码，最多 256 步，遇到 EOS 停</li>
+</ul>
+<pre><code class="language-python">targets = jax.nn.one_hot(observation.tokenized_prompt[:, 1:], vocab_size)
+pre_logits = self.PaliGemma.llm(embedded_prefix=input_token_embeddings[:, :-1], ...)
+logits = self.PaliGemma.llm(pre_logits=pre_logits[:, -targets.shape[1]:])
+logp = jax.nn.log_softmax(logits, axis=-1)
+loss = -jnp.sum(targets * logp * loss_mask, axis=-1) / loss_mask.sum(-1)</code></pre>
+
+<h2 id="pi05">5. π0.5 的差异</h2>
+<p><code>Pi0Config(pi05=True)</code>：</p>
+<ul>
+<li>state 变成离散语言 token，不再走 suffix 的 continuous state token</li>
+<li>action expert 用 <strong>adaRMSNorm</strong> 注入 flow matching timestep</li>
+<li><code>max_token_len=200</code></li>
+<li>仓库里 π0.5 <strong>只支持 flow matching head</strong>，不支持 FAST head</li>
+</ul>
+
+<h2 id="training">6. 训练管线</h2>
+<p>核心文件：</p>
+<pre><code>src/openpi/training/config.py:466   TrainConfig
+scripts/train.py:137                train_step
+scripts/train.py:194                main</code></pre>
+<p><code>TrainConfig</code> 主要字段：</p>
+<pre><code class="language-python">model: BaseModelConfig
+weight_loader: WeightLoader
+optimizer: AdamW
+lr_schedule: CosineDecay
+ema_decay: 0.99
+batch_size: 32
+num_train_steps: 30_000
+fsdp_devices: 1
+data: DataConfigFactory</code></pre>
+<p>数据侧：</p>
+<ul>
+<li><code>LeRobotLiberoDataConfig</code></li>
+<li><code>LeRobotAlohaDataConfig</code></li>
+<li><code>LeRobotDROIDDataConfig</code></li>
+<li><code>RLDSDroidDataConfig</code></li>
+</ul>
+<p>流程：</p>
+<pre><code>LeRobot dataset
+  -> repack transforms
+  -> Normalize / DeltaActions / ResizeImages / TokenizePrompt
+  -> Observation + Actions
+  -> model.compute_loss</code></pre>
+<p><code>train.py</code> 用 <code>nnx.value_and_grad</code> + <code>optax</code>，支持冻结部分参数、LoRA、EMA、FSDP。README 说当前训练脚本<strong>不支持多节点</strong>，只支持单节点多卡。</p>
+
+<h2 id="inference">7. 推理与部署</h2>
+<pre><code>src/openpi/policies/policy.py:22           class Policy
+src/openpi/policies/policy_config.py:15    create_trained_policy
+scripts/serve_policy.py                    websocket server</code></pre>
+<p><code>Policy.infer</code> 的流程：</p>
+<pre><code>obs dict
+  -> input transforms
+  -> Observation
+  -> model.sample_actions
+  -> output transforms
+  -> action chunk</code></pre>
+<p><code>create_trained_policy</code> 会自动判断 JAX 还是 PyTorch：有 <code>model.safetensors</code> 就是 PyTorch，否则加载 Orbax <code>params</code>。`serve_policy.py` 起 websocket server，默认端口 8000，机器人端用 <code>openpi-client</code> 连。</p>
+
+<h2 id="pytorch">8. PyTorch 版</h2>
+<pre><code>src/openpi/models_pytorch/pi0_pytorch.py:84   class PI0Pytorch</code></pre>
+<p>PyTorch 版是 π0 / π0.5 的移植，用 HuggingFace 的 PaliGemma + Gemma expert。几个关键点：</p>
+<ul>
+<li>需要打 <code>transformers_replace</code> patch（AdaRMS、精度控制、KV cache）</li>
+<li>支持 gradient checkpointing</li>
+<li>支持 <code>torch.compile</code></li>
+<li><strong>不支持</strong> π0-FAST</li>
+<li><strong>不支持</strong> 混合精度训练、FSDP、LoRA、EMA</li>
+</ul>
+
+<h2 id="reading">9. 关键文件阅读顺序</h2>
+<ol>
+<li><code>src/openpi/models/pi0.py</code> — 主模型</li>
+<li><code>src/openpi/models/gemma.py</code> — 双 expert Transformer</li>
+<li><code>src/openpi/models/siglip.py</code> — 视觉编码器</li>
+<li><code>src/openpi/models/model.py</code> — Observation / BaseModel</li>
+<li><code>src/openpi/training/config.py</code> — 训练配置</li>
+<li><code>scripts/train.py</code> — 训练循环</li>
+<li><code>src/openpi/policies/policy.py</code> + <code>policy_config.py</code> — 推理</li>
+<li><code>src/openpi/models_pytorch/pi0_pytorch.py</code> — PyTorch 版</li>
+</ol>
+
+<h2 id="questions">10. 待深入的问题</h2>
+<ul>
+<li>π0 的 attention mask / flow matching 细节</li>
+<li>π0.5 的 knowledge insulation 和 adaRMS</li>
+<li>训练数据 pipeline / LeRobot 格式</li>
+<li>PyTorch 版和 JAX 版的差异</li>
+<li>怎么把 openpi 接到自己的数据上</li>
+</ul>
+
+    </article>
+  </div>
+</main>
+<script>
+window.MathJax = {
+  tex: { inlineMath: [["\\(", "\\)"]], displayMath: [["\\[", "\\]"]] },
+  options: { ignoreHtmlClass: ".*|tex2jax_ignore", processHtmlClass: "arithmatex" }
+};
+</script>
+<script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js" id="MathJax-script" async></script>
+</body>
+</html>
