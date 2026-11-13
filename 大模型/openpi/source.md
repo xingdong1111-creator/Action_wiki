@@ -37,3 +37,19 @@ src/openpi/models_pytorch/pi0_pytorch.py
 - state 能看 prefix + state，不能看 action
 - action 能看 prefix + state + 所有 action
 - `ar_mask` 标记 block 边界：prefix block 0，state block 1，action block 2
+
+## 两个 expert 怎么实现
+
+- 一个 `gemma.Module`，`configs=[paligemma_config, action_expert_config]`
+- 参数名用 `_name(name, i)` 区分：`qkv_einsum_0/1`、`mlp_0/1`
+- 固定路由：prefix→expert 0，suffix→expert 1；没有 gate/top-k
+- 共享 attention；FFN/QKV/输出投影各自独立
+
+## 最后怎么出动作
+
+- `suffix_out: [B, 51, 1024]`
+- 取最后 50 个 action token：`[B, 50, 1024]`
+- `action_out_proj` -> `v_t: [B, 50, 32]`
+- 训练：`v_t` 和 `u_t = noise - actions` 做 MSE
+- 推理：10 步 Euler `x_t = x_t + dt * v_t`，最后 `x_0` 是 action chunk
+- 50 个 action token 并行解码，不是自回归

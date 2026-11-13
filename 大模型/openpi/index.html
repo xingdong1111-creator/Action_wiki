@@ -167,7 +167,36 @@ action: 1 0 0 ... 0     -> block 2</code></pre>
 <p>所以 <code>cumsum</code> 得到 block id 0/1/2，<code>block[j] &lt;= block[i]</code> 就得到上面这张 block-lower-triangular 的 mask。</p>
 <p>π0.5 少一个 state block：prefix 只能看 prefix，action 能看 prefix + 所有 action。</p>
 
-<h3 id="pi0-flow">3.3 Flow matching loss</h3>
+<h4 id="pi0-experts">3.2.2 两个 expert 怎么实现</h4>
+<p>不是两个独立 LLM，而是<strong>一个 <code>gemma.Module</code> 里两套参数</strong>：</p>
+<pre><code>configs=[paligemma_config, action_expert_config]</code></pre>
+<p>每个 expert 的参数名用 <code>_name(name, i)</code> 区分，例如：</p>
+<pre><code>qkv_einsum_0 / qkv_einsum_1
+mlp_0 / mlp_1</code></pre>
+<p>每层里：</p>
+<ul>
+<li>prefix token 用 expert 0 的 QKV / FFN / 输出投影</li>
+<li>suffix token 用 expert 1 的 QKV / FFN / 输出投影</li>
+<li>两边 QKV 按序列拼起来，做一次 joint attention</li>
+<li>输出按长度切回两个 expert</li>
+</ul>
+<p>所以它是<strong>固定路由的 dual-expert Transformer</strong>：没有 gate、没有 top-k，路由由 token 段硬编码；attention 共享，FFN/QKV/输出投影不共享。</p>
+
+<h3 id="pi0-action-out">3.3 最后怎么出动作</h3>
+<p>18 层之后，suffix 的 51 个 token 变成 hidden states：</p>
+<pre><code>suffix_out: [B, 51, 1024]</code></pre>
+<p>只取最后 50 个 action token，丢掉 state token：</p>
+<pre><code>action_hidden = suffix_out[:, -50:]   # [B, 50, 1024]</code></pre>
+<p>过 <code>action_out_proj</code>：</p>
+<pre><code>v_t = action_out_proj(action_hidden)  # [B, 50, 32]</code></pre>
+<p><strong>训练时：</strong><code>v_t</code> 是速度场，和 <code>u_t = noise - actions</code> 做 MSE。</p>
+<p><strong>推理时：</strong>从噪声 <code>x_1</code> 开始，10 步 Euler：</p>
+<pre><code>x_t = x_t + dt * v_t</code></pre>
+<p>最后 <code>x_0</code> 就是 action chunk：<code>[B, 50, 32]</code>。</p>
+<p>注意：50 个 action token 是<strong>并行解码</strong>的，不是逐 token 自回归；<code>action_out_proj</code> 是共享线性层，对每个位置独立应用。state token 不直接输出动作，它只通过 attention 影响 action token。</p>
+<p>输出后还会过 output transforms：unnormalize、delta→absolute（如果配置了）、repack 回机器人接口。</p>
+
+<h3 id="pi0-flow">3.4 Flow matching loss</h3>
 <p><code>compute_loss</code>（<code>pi0.py:189</code>）：</p>
 <div class="arithmatex">\[ x_t = t \cdot \epsilon + (1-t) \cdot a,\quad u_t = \epsilon - a \]</div>
 <div class="arithmatex">\[ \mathcal{L} = \| v_\theta(x_t,t) - u_t \|^2 \]</div>
