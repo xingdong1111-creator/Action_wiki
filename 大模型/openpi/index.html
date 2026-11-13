@@ -144,6 +144,29 @@ prefix = 768 + 48 = 816 个 token</code></pre>
 valid_mask = input_mask[:, None, :] * input_mask[:, :, None]
 return jnp.logical_and(attn_mask, valid_mask)</code></pre>
 
+<h4 id="pi0-mask">3.2.1 不是 causal，是 block-causal</h4>
+<p>整个序列不是标准 causal mask。准确说是 <strong>block-causal</strong>：</p>
+<table>
+<thead><tr><th>Query</th><th>prefix</th><th>state</th><th>action</th></tr></thead>
+<tbody>
+<tr><td>prefix</td><td>✓</td><td>✗</td><td>✗</td></tr>
+<tr><td>state</td><td>✓</td><td>✓</td><td>✗</td></tr>
+<tr><td>action</td><td>✓</td><td>✓</td><td>✓</td></tr>
+</tbody>
+</table>
+<ul>
+<li><strong>prefix 内部是双向 full attention</strong>：第 1 个 image token 能看最后一个 text token，反过来也能看。</li>
+<li><strong>prefix 看不到 suffix</strong>：prefix 的 query 只能看 prefix 的 key。</li>
+<li><strong>state 能看 prefix + state，不能看 action</strong>。</li>
+<li><strong>action 能看 prefix + state + 所有 action</strong>；action 之间也是双向 full attention，不是 token-level causal。</li>
+</ul>
+<p><code>ar_mask</code> 标记的是 block 边界，不是 token 级 causal：</p>
+<pre><code>prefix: 0 0 0 ... 0     -> block 0
+state:  1               -> block 1
+action: 1 0 0 ... 0     -> block 2</code></pre>
+<p>所以 <code>cumsum</code> 得到 block id 0/1/2，<code>block[j] &lt;= block[i]</code> 就得到上面这张 block-lower-triangular 的 mask。</p>
+<p>π0.5 少一个 state block：prefix 只能看 prefix，action 能看 prefix + 所有 action。</p>
+
 <h3 id="pi0-flow">3.3 Flow matching loss</h3>
 <p><code>compute_loss</code>（<code>pi0.py:189</code>）：</p>
 <div class="arithmatex">\[ x_t = t \cdot \epsilon + (1-t) \cdot a,\quad u_t = \epsilon - a \]</div>

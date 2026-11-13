@@ -28,3 +28,12 @@ src/openpi/models_pytorch/pi0_pytorch.py
 - π0.5：state 离散进 prompt，suffix 只有 50 个 action token
 - time：π0 拼到每个 action token 特征上；π0.5 用 adaRMS
 - attention：prefix 不能看 suffix；state 不能看 action；action 能看 prefix、state 和所有 action
+
+## mask
+
+- 整个序列是 block-causal，不是标准 causal
+- prefix 内部双向 full attention
+- prefix 看不到 suffix
+- state 能看 prefix + state，不能看 action
+- action 能看 prefix + state + 所有 action
+- `ar_mask` 标记 block 边界：prefix block 0，state block 1，action block 2
