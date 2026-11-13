@@ -53,3 +53,11 @@ src/openpi/models_pytorch/pi0_pytorch.py
 - 训练：`v_t` 和 `u_t = noise - actions` 做 MSE
 - 推理：10 步 Euler `x_t = x_t + dt * v_t`，最后 `x_0` 是 action chunk
 - 50 个 action token 并行解码，不是自回归
+
+## 推理 10 步循环
+
+- Prefix：PaliGemma 2B，18 层 × 1 次 = 18 层
+- 去噪：Action Expert 300M，18 层 × 10 次 = 180 层
+- 合计 11 次 forward，198 层执行
+- Prefix K/V 只算一次并缓存；每个去噪 step 只跑 Action Expert
+- 每个 step 输入 x_t 和 t，输出 v_t，Euler 更新 x_t

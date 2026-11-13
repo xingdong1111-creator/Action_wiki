@@ -196,6 +196,25 @@ mlp_0 / mlp_1</code></pre>
 <p>注意：50 个 action token 是<strong>并行解码</strong>的，不是逐 token 自回归；<code>action_out_proj</code> 是共享线性层，对每个位置独立应用。state token 不直接输出动作，它只通过 attention 影响 action token。</p>
 <p>输出后还会过 output transforms：unnormalize、delta→absolute（如果配置了）、repack 回机器人接口。</p>
 
+<h4 id="pi0-infer-loop">3.3.1 推理时 10 步循环</h4>
+<p>推理不是把 2B 模型跑 10 次，而是：</p>
+<table>
+<thead><tr><th>阶段</th><th>模型</th><th>层数</th><th>forward 次数</th><th>层执行</th></tr></thead>
+<tbody>
+<tr><td>Prefix</td><td>PaliGemma 2B</td><td>18</td><td>1</td><td>18</td></tr>
+<tr><td>去噪</td><td>Action Expert 300M</td><td>18</td><td>10</td><td>180</td></tr>
+<tr><td><strong>合计</strong></td><td></td><td></td><td><strong>11</strong></td><td><strong>198</strong></td></tr>
+</tbody>
+</table>
+<ul>
+<li>Prefix 只跑一次，产出 18 层的 KV cache。</li>
+<li>每个去噪 step 只跑 Action Expert，读 prefix KV cache。</li>
+<li>每个 step 的输入是当前的 <code>x_t</code> 和 <code>t</code>，输出 <code>v_t</code>。</li>
+<li>Euler 更新：<code>x_t = x_t + dt * v_t</code>，<code>t</code> 从 1.0 走到 0.0。</li>
+<li>10 个 step 后得到 <code>x_0: [B, 50, 32]</code>。</li>
+<li>不是 PaliGemma 2B 跑 10 次；PaliGemma 只跑 1 次，Action Expert 跑 10 次。</li>
+</ul>
+
 <h3 id="pi0-flow">3.4 Flow matching loss</h3>
 <p><code>compute_loss</code>（<code>pi0.py:189</code>）：</p>
 <div class="arithmatex">\[ x_t = t \cdot \epsilon + (1-t) \cdot a,\quad u_t = \epsilon - a \]</div>
