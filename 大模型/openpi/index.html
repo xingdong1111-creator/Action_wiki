@@ -297,6 +297,7 @@ normed = x / sqrt(mean(x^2) + eps)
 normed = normed * (1 + scale) + shift
 
 residual = x + y * gate</code></pre>
+<p><strong>RMSNorm 的位置：</strong>每个 Transformer block 里有两个 pre-norm：attention 前和 FFN 前；18 层共 36 次；最后还有一个 <code>final_norm</code>，所以每个 expert 一共 37 次。π0.5 的 action expert 这 37 次都是 adaRMS；PaliGemma 的 37 次是普通 RMSNorm。</p>
 <p>time 不是只加在输入上，而是注入 action expert 每一层的 <code>pre_attention_norm_1</code> 和 <code>pre_ffw_norm_1</code>，所以每一层都能感知当前 flow matching 的 <code>t</code>。</p>
 
 <h3 id="pi05-length">5.3 序列长度</h3>
