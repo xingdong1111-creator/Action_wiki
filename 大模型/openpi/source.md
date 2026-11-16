@@ -41,7 +41,7 @@ src/openpi/models_pytorch/pi0_pytorch.py
 ## 两个 expert 怎么实现
 
 - 一个 `gemma.Module`，`configs=[paligemma_config, action_expert_config]`
-- 参数名用 `_name(name, i)` 区分：`qkv_einsum_0/1`、`mlp_0/1`
+- 参数名用 `_name(name, i)` 区分：`qkv_einsum` / `qkv_einsum_1`、`mlp` / `mlp_1`（expert 0 无后缀）
 - 固定路由：prefix→expert 0，suffix→expert 1；没有 gate/top-k
 - 共享 attention；FFN/QKV/输出投影各自独立
 

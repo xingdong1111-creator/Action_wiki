@@ -170,9 +170,10 @@ action: 1 0 0 ... 0     -> block 2</code></pre>
 <h4 id="pi0-experts">3.2.2 两个 expert 怎么实现</h4>
 <p>不是两个独立 LLM，而是<strong>一个 <code>gemma.Module</code> 里两套参数</strong>：</p>
 <pre><code>configs=[paligemma_config, action_expert_config]</code></pre>
-<p>每个 expert 的参数名用 <code>_name(name, i)</code> 区分，例如：</p>
-<pre><code>qkv_einsum_0 / qkv_einsum_1
-mlp_0 / mlp_1</code></pre>
+<p>每个 expert 的参数名用 <code>_name(name, i)</code> 区分：</p>
+<pre><code>expert 0（PaliGemma）: qkv_einsum, mlp, pre_attention_norm, final_norm
+expert 1（Action）:    qkv_einsum_1, mlp_1, pre_attention_norm_1, final_norm_1</code></pre>
+<p>注意 expert 0 没有后缀，这样可以直接加载原来的 PaliGemma checkpoint；expert 1 才加 <code>_1</code>，从零初始化。</p>
 <p>每层里：</p>
 <ul>
 <li>prefix token 用 expert 0 的 QKV / FFN / 输出投影</li>
@@ -286,9 +287,17 @@ Action: </code></pre>
 
 <h3 id="pi05-adarms">5.2 time 用 adaRMSNorm，不拼到 token 上</h3>
 <p>π0：time embedding 复制 50 份，和每个 action token 拼起来，再过 MLP。</p>
-<p>π0.5：time embedding 过 <code>time_mlp_in/out</code>，作为 <code>adarms_cond</code> 传给 action expert 的 RMSNorm：</p>
+<p>π0.5：time embedding 过 <code>time_mlp_in/out</code>（两层 Linear + swish），得到 <code>adarms_cond: [B, 1024]</code>，传给 action expert 的 RMSNorm：</p>
 <pre><code>use_adarms=[False, True]</code></pre>
-<p>也就是 PaliGemma expert 不用 adaRMS，action expert 用 adaRMS。</p>
+<p>也就是 PaliGemma expert 用普通 RMSNorm，action expert 用 adaRMS。adaRMS 的做法是：</p>
+<pre><code>modulation = Dense(3 * width)(cond)
+scale, shift, gate = split(modulation, 3)
+
+normed = x / sqrt(mean(x^2) + eps)
+normed = normed * (1 + scale) + shift
+
+residual = x + y * gate</code></pre>
+<p>time 不是只加在输入上，而是注入 action expert 每一层的 <code>pre_attention_norm_1</code> 和 <code>pre_ffw_norm_1</code>，所以每一层都能感知当前 flow matching 的 <code>t</code>。</p>
 
 <h3 id="pi05-length">5.3 序列长度</h3>
 <pre><code>prefix = 768 image token + 200 prompt token = 968
