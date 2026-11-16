@@ -48,7 +48,7 @@
 <li><a href="#layout">2. 仓库地图</a></li>
 <li><a href="#pi0">3. π0 架构</a></li>
 <li><a href="#fast">4. π0-FAST</a></li>
-<li><a href="#pi05">5. π0.5 的差异</a></li>
+<li><a href="#pi05">5. π0.5</a></li>
 <li><a href="#training">6. 训练管线</a></li>
 <li><a href="#inference">7. 推理与部署</a></li>
 <li><a href="#pytorch">8. PyTorch 版</a></li>
@@ -234,6 +234,28 @@ return jnp.mean(jnp.square(v_t - u_t), axis=-1)</code></pre>
 <li>注意代码里 <code>t=1</code> 是噪声、<code>t=0</code> 是目标，和论文相反，注释里也写了</li>
 </ul>
 
+<h3 id="pi0-design">3.5 为什么这样设计（小技巧）</h3>
+<table>
+<thead><tr><th>设计</th><th>原因</th></tr></thead>
+<tbody>
+<tr><td>PaliGemma 2048</td><td>保留预训练视觉语言模型的结构和能力</td></tr>
+<tr><td>Action Expert 1024 / 300M</td><td>动作生成任务比视觉语言理解窄，300M 够用，省算力</td></tr>
+<tr><td>共享 attention</td><td>不需要额外的 cross-attention，action expert 直接读 prefix</td></tr>
+<tr><td>QKV 都投到 8×256</td><td>两个 expert 宽度不同，但 head 空间一致，才能拼成一条序列</td></tr>
+<tr><td>输出投影回各自宽度</td><td>prefix 回 2048，action expert 回 1024</td></tr>
+<tr><td>固定路由</td><td>prefix/suffix 天然分开，不需要 learned gate 和 load balancing</td></tr>
+<tr><td>block-causal mask</td><td>prefix 双向、action 看 prefix、prefix 不看 action，符合 flow matching</td></tr>
+<tr><td>prefix KV cache</td><td>2B 只跑 1 次，300M 跑 10 次，推理成本可控</td></tr>
+</tbody>
+</table>
+<p><strong>代价：</strong></p>
+<ul>
+<li>两个 expert 的 head 几何必须一致（8×256），限制了 action expert 的配置。</li>
+<li>固定路由不如 learned MoE 灵活。</li>
+<li>10 步去噪仍然有延迟。</li>
+</ul>
+<p>一句话：<strong>大模型理解 + 小模型生成 + 共享 attention + KV cache</strong>，目标是效果接近大模型，推理成本接近小模型。</p>
+
 <h2 id="fast">4. π0-FAST</h2>
 <p>核心文件：</p>
 <pre><code>src/openpi/models/pi0_fast.py:134   class Pi0FAST</code></pre>
@@ -251,14 +273,42 @@ logits = self.PaliGemma.llm(pre_logits=pre_logits[:, -targets.shape[1]:])
 logp = jax.nn.log_softmax(logits, axis=-1)
 loss = -jnp.sum(targets * logp * loss_mask, axis=-1) / loss_mask.sum(-1)</code></pre>
 
-<h2 id="pi05">5. π0.5 的差异</h2>
-<p><code>Pi0Config(pi05=True)</code>：</p>
-<ul>
-<li>state 变成离散语言 token，不再走 suffix 的 continuous state token</li>
-<li>action expert 用 <strong>adaRMSNorm</strong> 注入 flow matching timestep</li>
-<li><code>max_token_len=200</code></li>
-<li>仓库里 π0.5 <strong>只支持 flow matching head</strong>，不支持 FAST head</li>
-</ul>
+<h2 id="pi05">5. π0.5：和 π0 的差异</h2>
+<p><code>Pi0Config(pi05=True)</code>。</p>
+
+<h3 id="pi05-state">5.1 state 进 prompt，不进 suffix</h3>
+<p>π0：state 是一个 continuous token，放在 suffix 里。</p>
+<p>π0.5：state 先离散化，再拼进语言 prompt：</p>
+<pre><code>Task: {prompt}, State: {state_str};
+Action: </code></pre>
+<p><code>state</code> 被分到 256 个 bin（范围 [-1, 1]），每个值变成一个数字 token。所以 π0.5 的 suffix 只有 50 个 action token，没有 state token。</p>
+<p>配置项是 <code>discrete_state_input=True</code>，默认跟随 <code>pi05=True</code>。</p>
+
+<h3 id="pi05-adarms">5.2 time 用 adaRMSNorm，不拼到 token 上</h3>
+<p>π0：time embedding 复制 50 份，和每个 action token 拼起来，再过 MLP。</p>
+<p>π0.5：time embedding 过 <code>time_mlp_in/out</code>，作为 <code>adarms_cond</code> 传给 action expert 的 RMSNorm：</p>
+<pre><code>use_adarms=[False, True]</code></pre>
+<p>也就是 PaliGemma expert 不用 adaRMS，action expert 用 adaRMS。</p>
+
+<h3 id="pi05-length">5.3 序列长度</h3>
+<pre><code>prefix = 768 image token + 200 prompt token = 968
+suffix = 50 action token
+total  = 1018</code></pre>
+<p><code>max_token_len=200</code>，比 π0 的 48 长很多，因为 state 也进了 prompt。</p>
+
+<h3 id="pi05-head">5.4 只支持 flow matching head</h3>
+<p>openpi 里的 π0.5 只支持 flow matching，不支持 π0-FAST 的 autoregressive head。</p>
+
+<h3 id="pi05-configs">5.5 配置差异</h3>
+<table>
+<thead><tr><th>配置</th><th>action_horizon</th><th>state 输入</th></tr></thead>
+<tbody>
+<tr><td><code>pi05_aloha</code></td><td>50</td><td>离散进 prompt</td></tr>
+<tr><td><code>pi05_droid</code></td><td>15</td><td>离散进 prompt</td></tr>
+<tr><td><code>pi05_libero</code></td><td>10</td><td><code>discrete_state_input=False</code>，state 被忽略</td></tr>
+</tbody>
+</table>
+<p>π0.5 的其他结构（18 层、双 expert、共享 attention、10 步采样）和 π0 一样。</p>
 
 <h2 id="training">6. 训练管线</h2>
 <p>核心文件：</p>

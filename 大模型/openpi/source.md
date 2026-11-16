@@ -61,3 +61,22 @@ src/openpi/models_pytorch/pi0_pytorch.py
 - 合计 11 次 forward，198 层执行
 - Prefix K/V 只算一次并缓存；每个去噪 step 只跑 Action Expert
 - 每个 step 输入 x_t 和 t，输出 v_t，Euler 更新 x_t
+
+## 为什么这样设计
+
+- PaliGemma 2048：保留预训练 VLM
+- Action Expert 1024/300M：动作任务窄，省算力
+- 共享 attention：不需要额外 cross-attention
+- QKV 都投到 8×256：不同宽度也能拼
+- 固定路由：prefix/suffix 天然分开，无需 gate
+- prefix KV cache：2B 只跑 1 次，300M 跑 10 次
+
+## π0.5
+
+- `Pi0Config(pi05=True)`
+- state 离散到 256 bin，拼进 prompt：`Task: ..., State: ...; Action:`
+- suffix 只有 50 个 action token
+- time 用 adaRMSNorm 注入 action expert
+- `max_token_len=200`；prefix 968，suffix 50，total 1018
+- 只支持 flow matching head
+- `pi05_libero` 用 `discrete_state_input=False`，state 被忽略
