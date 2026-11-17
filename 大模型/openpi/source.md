@@ -88,3 +88,10 @@ src/openpi/models_pytorch/pi0_pytorch.py
 - π0.7：5B，Gemma3 4B + MEM video history encoder + 860M action expert，多模态上下文 + subgoal images + BAGEL world model，5 步
 - 官方资料：π0.6 model card、arXiv 2511.14759、arXiv 2604.15483
 - 第三方实现：openpie-0.6、opentau pi06、hzm8341/pi0.6、CBC_Pi0.7_Openpi（非官方）
+
+## flow 训练的两个随机变量
+
+- 每个 step 采样：数据样本、noise、t
+- noise 决定 `v_true = noise - actions`，t 决定 `x_t = t*noise + (1-t)*actions`
+- 同一个 (actions, noise)：v_true 与 t 无关；t 只改变 x_t
+- 训练时 noise/t 每步重采；推理时 noise 只采一次，t 固定 1→0

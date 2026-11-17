@@ -227,6 +227,37 @@ v_t = self.action_out_proj(suffix_out[:, -self.action_horizon :])
 return jnp.mean(jnp.square(v_t - u_t), axis=-1)</code></pre>
 <p><code>t</code> 采样是 <code>Beta(1.5, 1) * 0.999 + 0.001</code>。</p>
 
+<h4 id="pi0-flow-random">3.4.1 训练时的两个随机变量</h4>
+<p>每个训练 step 采样三样东西：</p>
+<ul>
+<li>数据样本：<code>actions</code> / <code>images</code> / <code>prompt</code> / <code>state</code></li>
+<li><code>noise</code>：每个 step 重新采样</li>
+<li><code>t</code>：每个 step 重新采样</li>
+</ul>
+<p>固定一个数据样本时，就是两个随机变量：<code>noise</code> 和 <code>t</code>。</p>
+<table>
+<thead><tr><th>变量</th><th>控制什么</th></tr></thead>
+<tbody>
+<tr><td><code>noise</code></td><td><code>v_true = noise - actions</code>，决定路径和目标速度</td></tr>
+<tr><td><code>t</code></td><td><code>x_t = t*noise + (1-t)*actions</code>，决定路径上的哪个点</td></tr>
+</tbody>
+</table>
+<p>所以：</p>
+<ul>
+<li>同一个 <code>(actions, noise)</code>：<code>v_true</code> 恒定，<code>t</code> 只改变 <code>x_t</code></li>
+<li>不同 <code>noise</code>：<code>v_true</code> 不同，路径不同</li>
+<li>模型学的是 <code>v(x_t,t)</code> 条件平均速度，不是背单条路径的常数</li>
+</ul>
+<p>一维例子：<code>actions=1.0</code>，<code>noise=-1.0</code>，则 <code>v_true=-2</code>；<code>t=0.25</code> 时 <code>x_t=0.5</code>，<code>t=0.75</code> 时 <code>x_t=-0.5</code>，两个点的目标速度都是 <code>-2</code>。</p>
+<table>
+<thead><tr><th></th><th>训练</th><th>推理</th></tr></thead>
+<tbody>
+<tr><td><code>noise</code></td><td>每个 step 重新采样</td><td>只在开始采样一次</td></tr>
+<tr><td><code>t</code></td><td>每个 step 随机采样</td><td>固定 <code>1 -&gt; 0</code>，10 步</td></tr>
+<tr><td><code>x_t</code></td><td>由 <code>actions/noise/t</code> 构造</td><td>由上一步 Euler 更新</td></tr>
+</tbody>
+</table>
+
 <h3 id="pi0-sampling">3.4 Sampling</h3>
 <p><code>sample_actions</code>（<code>pi0.py:217</code>）：</p>
 <ul>
