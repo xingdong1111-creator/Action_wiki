@@ -165,7 +165,127 @@ Teacher-rollout SFT 用 teacher 的环境轨迹和 flow 状态，虽然也是 ve
 4. 15,360 episodes 的采集成本在真实驾驶/机器人上是否可接受？有没有更 sample-efficient 的 on-policy 采样策略？
 5. 跨 domain action 语义统一之后，remaining gap 能缩小多少？LIBERO-10 那种长任务是否还需要额外的 memory/hierarchy？
 
-## 9. 参考
+
+## 9. 概念澄清 / 常见问题
+
+这一节把容易混淆的几个点单独拎出来。
+
+### Q1：这篇的主题是不是“多 teacher”？
+
+多 teacher 是 setting，不是唯一卖点。论文的核心是：
+
+> **多教师 + 两层 on-policy + flow velocity 蒸馏**。
+
+如果只是把多个 teacher 的 loss 加权，和已有的 MOPD 差别不大；这篇的 novelty 是 flow-based VLA 的**动作生成级 on-policy**，以及在 student 自己的 flow 轨迹上做 velocity 回归。
+
+### Q2：环境级到底监督什么？
+
+不是给 observation 打标签，也没有单独的 observation loss。环境级只决定：**在哪些 observation 上 query teacher**。监督量仍然是 teacher velocity。
+
+| | observation 从哪来 | 下一步 observation 由谁决定 | student 的动作会影响后续输入吗 |
+|---|---|---|---|
+| 离线数据蒸馏 | 固定数据集 | 数据集 | 不会 |
+| 环境级 OPD | student 自己 rollout | student 动作 + 环境 | 会 |
+
+所以环境级就是 VLA 版的 DAgger：student 自己跑，跑到哪，teacher 就在哪纠正。
+
+### Q3：Online 是在机器人本体上训练吗？
+
+不是。LIBERO / Meta-World / CALVIN 全是仿真器，没有真机实验。
+
+这里的 **online / on-policy** 指的是“数据由当前 student 产生”，不是“在机器人上实时训练”。训练循环是：
+
+```text
+student 在仿真器里跑 64 个 episode / domain
+→ teacher 在 student 访问到的 observation / flow 状态上打 velocity
+→ 收集数据
+→ GPU 上做一次梯度更新
+→ 用更新后的 student 进入下一轮
+```
+
+rollout 在仿真器，梯度更新在 GPU；不是每走一步更新一次的 real-time learning。
+
+### Q4：动作生成级又是什么？
+
+给定一个 observation，student 不是一步出动作，而是用 flow ODE 多步生成：
+
+```text
+x0 = 噪声
+x1 = x0 + vθ(x0, τ0; c) · Δτ
+...
+xN = 最终 action chunk
+```
+
+这条 `x0 → x1 → ... → xN` 是 student 自己的 action-generation trajectory。动作生成级在**每个非终端节点 `x_i`** 上 query teacher：
+
+```text
+MSE(v_student(x_i, τ_i; c), v_teacher(x_i, τ_i; c))
+```
+
+和两个 baseline 的区别：
+
+- **Action Loss OPD**：只比最终 action `xN`，gradient 穿过整个 solver；
+- **Teacher-rollout SFT**：用 teacher 自己的 flow 路径；
+- **Velocity Loss OPD**：用 student 自己的 flow 路径，在每个中间节点给 dense velocity 监督。
+
+### Q5：Student 还学 GT 吗？
+
+分两个阶段：
+
+1. **SFT 初始化**：用 LIBERO / Meta-World / CALVIN 的演示数据做 joint SFT，这一步学 GT；
+2. **OPD 蒸馏**：loss 里只有 teacher velocity，没有 GT action loss，也没有 reward。
+
+所以 OPD 阶段不直接学 GT；GT 通过 SFT 初始化和 frozen teacher 间接进入。风险是 teacher 的错误也会被蒸馏；论文没有加 GT 正则，如果自己想更稳，可以加一个小的 GT flow-matching loss 做 anchor。
+
+### Q6：多教师能力合并是什么？
+
+就是：**多个 specialist → 一个共享 student；部署时只留 student，teacher 全部丢掉。**
+
+不是 ensemble（推理时还带多个模型），也不是 weight merging（把参数直接拼起来），而是 behavioral distillation：让一个 student 分别向多个专家学，把能力压进同一套参数里。
+
+| | LIBERO | Meta-World | CALVIN length |
+|---|---:|---:|---:|
+| 三个 specialist 各自 | 98.0 | 76.2 | 4.698 |
+| 一个 student joint SFT（混合数据直接训） | 53.15 | 38.0 | 3.235 |
+| 一个 student multi-teacher OPD | 75.70 | 60.6 | 4.362 |
+
+Joint SFT 也是“一个 student 学三个 domain”，但它是三个 domain 的平均妥协；OPD 用各自 teacher 在 student 自己访问到的状态上做更 targeted 的监督，所以更接近 specialist。
+
+### Q7：每个 case 都同时学 3 个 teacher 吗？
+
+不是。**每个 case 只由它自己 domain 的 teacher 监督。**
+
+```text
+LIBERO 的样本      → 只用 LIBERO teacher
+Meta-World 的样本  → 只用 Meta-World teacher
+CALVIN 的样本      → 只用 CALVIN teacher
+
+三个 domain 的 loss 加权求和，梯度更新同一个 student。
+```
+
+一个 LIBERO 的 observation 不会去 query Meta-World teacher。难点不是“同一个输入对应三个矛盾标签”，而是**三个 domain 的梯度打到同一套共享参数上，会互相干扰**。
+
+### Q8：为什么一个 student 能同时学三个？
+
+- 输入分布不同：不同 domain 的 observation / instruction 不一样；
+- domain-specific 预处理、归一化、action decoding 保留自己的接口；
+- 共享的是 learned policy 参数；
+- domain 在训练时是已知的，知道该找哪个 teacher；
+- domain 权重控制平衡，避免某个 domain 的梯度压倒其它 domain。
+
+### Q9：两层是两条独立的 loss 吗？
+
+不是。只有一个 MSE，两个采样轴：
+
+```text
+c ~ student rollout                     ← 环境级决定 c 从哪来
+x ~ student flow trajectory             ← 动作生成级决定 x 从哪来
+loss = MSE(v_student(x, τ; c), v_teacher(x, τ; c))
+```
+
+监督量始终是 teacher velocity；两层只是决定“在哪些点上问 teacher”。
+
+## 10. 参考
 
 - [论文 arXiv:2610.21522](https://arxiv.org/abs/2610.21522)
 - π0.5: [arXiv:2504.16054](https://arxiv.org/abs/2504.16054)
