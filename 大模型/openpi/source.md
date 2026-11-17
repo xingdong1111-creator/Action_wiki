@@ -80,3 +80,11 @@ src/openpi/models_pytorch/pi0_pytorch.py
 - `max_token_len=200`；prefix 968，suffix 50，total 1018
 - 只支持 flow matching head
 - `pi05_libero` 用 `discrete_state_input=False`，state 被忽略
+
+## π0.6 / π0.7
+
+- 官方 openpi 只到 π0.5，没有 π0.6 / π0.7 代码和权重
+- π0.6：Gemma3 4B + 860M action expert，Knowledge Insulation，4 图 448×448，5 步去噪，RECAP（π*0.6）
+- π0.7：5B，Gemma3 4B + MEM video history encoder + 860M action expert，多模态上下文 + subgoal images + BAGEL world model，5 步
+- 官方资料：π0.6 model card、arXiv 2511.14759、arXiv 2604.15483
+- 第三方实现：openpie-0.6、opentau pi06、hzm8341/pi0.6、CBC_Pi0.7_Openpi（非官方）
