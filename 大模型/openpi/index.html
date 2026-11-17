@@ -316,9 +316,18 @@ total  = 1018</code></pre>
 <tr><td><code>pi05_aloha</code></td><td>50</td><td>离散进 prompt</td></tr>
 <tr><td><code>pi05_droid</code></td><td>15</td><td>离散进 prompt</td></tr>
 <tr><td><code>pi05_libero</code></td><td>10</td><td><code>discrete_state_input=False</code>，state 被忽略</td></tr>
+<tr><td><code>pi05_full_droid_finetune</code></td><td>16</td><td>离散进 prompt</td></tr>
+<tr><td><code>pi05_droid_finetune</code></td><td>16</td><td>离散进 prompt</td></tr>
 </tbody>
 </table>
 <p>π0.5 的其他结构（18 层、双 expert、共享 attention、10 步采样）和 π0 一样。</p>
+
+<h3 id="pi05-train-infer">5.6 训练/推理：和 π0 基本一样</h3>
+<ul>
+<li><code>compute_loss</code> 和 <code>sample_actions</code> 的结构不变，只是 suffix 没有 state token，<code>adarms_cond</code> 传给 <code>llm</code>。</li>
+<li>训练时一次 joint forward；推理时 prefix KV cache 一次，Action Expert 10 步。</li>
+<li>π0.5 的 50 个 action token 仍然是并行解码，flow matching head 不变。</li>
+</ul>
 
 <h2 id="training">6. 训练管线</h2>
 <p>核心文件：</p>
