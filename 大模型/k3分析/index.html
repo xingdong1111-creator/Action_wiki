@@ -589,6 +589,20 @@
 <img src="activation-functions.svg" alt="ReLU、ReLU6、GELU 与 SiLU 的函数曲线对比" loading="lazy" style="width: 100%; height: auto;">
 <figcaption style="font-size: .85em; margin-top: .5em;">图：ReLU 将负区清零，ReLU6 再将正区封顶到 6；GELU/SiLU 平滑且允许少量负值，SiLU 在 x≈-1.28 处最低约 -0.278。</figcaption>
 </figure>
+<h4 id="activation-tradeoffs">常见激活函数的优劣</h4>
+<table>
+<thead>
+<tr><th>函数 / 结构</th><th>优势</th><th>代价与边界</th></tr>
+</thead>
+<tbody>
+<tr><td><strong>ReLU</strong></td><td>单点计算最省：负数清零、正数直出；正区不饱和，反向梯度简单；量化、融合和部署友好。</td><td>负区完全清零，长期收不到正输入的神经元可能“死亡”（Dead ReLU）；正区无上界，仍可能产生 activation outlier。</td></tr>
+<tr><td><strong>ReLU6</strong></td><td>保持 ReLU 的低成本，同时把输出限制在 [0, 6]；数值范围可控，能抑制极端激活，适合量化和移动端部署。</td><td>x&gt;6 后梯度也为 0，大幅值信息被截断；负区死亡问题仍在，cap 也可能损失部分表达能力。</td></tr>
+<tr><td><strong>GELU</strong></td><td>平滑、非硬截断，相当于对输入做连续软选择；Transformer 中常用，优化和效果通常较稳定。</td><td>精确版需要 erf，近似版也需要 tanh 等运算，标量成本高于 ReLU；负区同样接近 0，正区也无上界。</td></tr>
+<tr><td><strong>SiLU</strong></td><td>平滑、自门控，负区允许少量信号通过；正区近似恒等，自身不引入额外参数，是 SwiGLU 的门控核心。</td><td>需要 sigmoid 和乘法，成本高于 ReLU；正区无上界，负区深层仍接近 0，乘进门控结构后可能放大异常值。</td></tr>
+<tr><td><strong>SwiGLU</strong><br>（门控 FFN，不是单个激活函数）</td><td>“门控 × 内容”让模型按 token 动态选择特征，表达能力强，是 Llama/Qwen 等 LLM 的常用 FFN。</td><td>三组投影矩阵，相同中间维下参数和计算约为普通 FFN 的 1.5 倍；两分支相乘会放大 outlier，对数值稳定性要求更高。</td></tr>
+</tbody>
+</table>
+<p><strong>怎么理解“ReLU 快”：</strong>它指的是单个激活运算最简单、实现和部署友好，不代表换掉激活后端到端一定按比例提速。真实速度还取决于 kernel 是否融合、编译器、硬件和内存带宽；选激活函数时，通常是在<strong>效果、数值稳定性、参数量和部署成本</strong>之间取舍。</p>
 <h3 id="12-swiglu">1.2 在 SwiGLU 里的位置</h3>
 <p><span class="arithmatex">\(SwiGLU(x) = W_3\big(\mathrm{SiLU}(W_1 x) \odot W_2 x\big)\)</span>：门控分支（放行多少）× 线性分支（内容本体）。实证稳赢 GELU/ReLU FFN，是 Llama/Qwen/K2 全系标配。</p>
 <h3 id="13-ox4">1.3 病根：正区无上界 × 乘性结构 = O(‖x‖⁴)</h3>
