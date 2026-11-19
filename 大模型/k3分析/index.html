@@ -592,16 +592,17 @@
 <h4 id="activation-tradeoffs">常见激活函数的优劣</h4>
 <table>
 <thead>
-<tr><th>函数 / 结构</th><th>优势</th><th>代价与边界</th></tr>
+<tr><th>函数 / 结构</th><th>公式</th><th>优势</th><th>代价与边界</th></tr>
 </thead>
 <tbody>
-<tr><td><strong>ReLU</strong></td><td>单点计算最省：负数清零、正数直出；正区不饱和，反向梯度简单；量化、融合和部署友好。</td><td>负区完全清零，长期收不到正输入的神经元可能“死亡”（Dead ReLU）；正区无上界，仍可能产生 activation outlier。</td></tr>
-<tr><td><strong>ReLU6</strong></td><td>保持 ReLU 的低成本，同时把输出限制在 [0, 6]；数值范围可控，能抑制极端激活，适合量化和移动端部署。</td><td>x&gt;6 后梯度也为 0，大幅值信息被截断；负区死亡问题仍在，cap 也可能损失部分表达能力。</td></tr>
-<tr><td><strong>GELU</strong></td><td>平滑、非硬截断，相当于对输入做连续软选择；Transformer 中常用，优化和效果通常较稳定。</td><td>精确版需要 erf，近似版也需要 tanh 等运算，标量成本高于 ReLU；负区同样接近 0，正区也无上界。</td></tr>
-<tr><td><strong>SiLU</strong></td><td>平滑、自门控，负区允许少量信号通过；正区近似恒等，自身不引入额外参数，是 SwiGLU 的门控核心。</td><td>需要 sigmoid 和乘法，成本高于 ReLU；正区无上界，负区深层仍接近 0，乘进门控结构后可能放大异常值。</td></tr>
-<tr><td><strong>SwiGLU</strong><br>（门控 FFN，不是单个激活函数）</td><td>“门控 × 内容”让模型按 token 动态选择特征，表达能力强，是 Llama/Qwen 等 LLM 的常用 FFN。</td><td>三组投影矩阵，相同中间维下参数和计算约为普通 FFN 的 1.5 倍；两分支相乘会放大 outlier，对数值稳定性要求更高。</td></tr>
+<tr><td><strong>ReLU</strong></td><td><span class="arithmatex">\(\mathrm{ReLU}(x)=\max(0,x)\)</span></td><td>单点计算最省：负数清零、正数直出；正区不饱和，反向梯度简单；量化、融合和部署友好。</td><td>负区完全清零，长期收不到正输入的神经元可能“死亡”（Dead ReLU）；正区无上界，仍可能产生 activation outlier。</td></tr>
+<tr><td><strong>ReLU6</strong></td><td><span class="arithmatex">\(\mathrm{ReLU6}(x)=\min(6,\max(0,x))\)</span></td><td>保持 ReLU 的低成本，同时把输出限制在 [0, 6]；数值范围可控，能抑制极端激活，适合量化和移动端部署。</td><td>x&gt;6 后梯度也为 0，大幅值信息被截断；负区死亡问题仍在，cap 也可能损失部分表达能力。</td></tr>
+<tr><td><strong>GELU</strong></td><td><span class="arithmatex">\(\mathrm{GELU}(x)=x\,\Phi(x)\)</span></td><td>平滑、非硬截断，相当于对输入做连续软选择；Transformer 中常用，优化和效果通常较稳定。</td><td>精确版需要 erf，近似版也需要 tanh 等运算，标量成本高于 ReLU；负区同样接近 0，正区也无上界。</td></tr>
+<tr><td><strong>SiLU</strong></td><td><span class="arithmatex">\(\mathrm{SiLU}(x)=x\,\sigma(x)\)</span></td><td>平滑、自门控，负区允许少量信号通过；正区近似恒等，自身不引入额外参数，是 SwiGLU 的门控核心。</td><td>需要 sigmoid 和乘法，成本高于 ReLU；正区无上界，负区深层仍接近 0，乘进门控结构后可能放大异常值。</td></tr>
+<tr><td><strong>SwiGLU</strong><br>（门控 FFN，不是单个激活函数）</td><td><span class="arithmatex">\(\mathrm{SwiGLU}(x)=W_3(\mathrm{SiLU}(W_1x)\odot W_2x)\)</span></td><td>“门控 × 内容”让模型按 token 动态选择特征，表达能力强，是 Llama/Qwen 等 LLM 的常用 FFN。</td><td>三组投影矩阵，相同中间维下参数和计算约为普通 FFN 的 1.5 倍；两分支相乘会放大 outlier，对数值稳定性要求更高。</td></tr>
 </tbody>
 </table>
+<p>符号说明：<span class="arithmatex">\(\sigma(x)=1/(1+e^{-x})\)</span> 是 sigmoid，<span class="arithmatex">\(\Phi(x)\)</span> 是标准正态分布的累积分布函数，<span class="arithmatex">\(\odot\)</span> 表示逐元素相乘。</p>
 <p><strong>怎么理解“ReLU 快”：</strong>它指的是单个激活运算最简单、实现和部署友好，不代表换掉激活后端到端一定按比例提速。真实速度还取决于 kernel 是否融合、编译器、硬件和内存带宽；选激活函数时，通常是在<strong>效果、数值稳定性、参数量和部署成本</strong>之间取舍。</p>
 <h4 id="nvdla-activation-hardware">硬件实现例子：NVDLA</h4>
 <p>NVDLA 官方文档把这两条路径分得很清楚：<strong>ReLU 这类简单函数可以直接用硬件逻辑完成阈值截断；sigmoid / tanh 等复杂非线性函数则通过 SDP/CDP 中软件可编程的查找表（LUT）近似。</strong>前者不需要查表，后者需要预先加载 LUT，并经过表项匹配和线性插值。因此“ReLU 快”在硬件上不仅是运算简单，还意味着更短的数据路径和更少的存储访问。</p>
