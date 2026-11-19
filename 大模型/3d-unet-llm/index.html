@@ -1,0 +1,1050 @@
+<!doctype html>
+<!DOCTYPE html>
+
+<html class="no-js" lang="zh">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="3D U-Net 原理、最小代码、典型应用，以及与 LLM 的五种结合方式、关键设计问题和学习路线。" name="description"/>
+<link href="https://xingdong1111-creator.github.io/Action_wiki/%E5%A4%A7%E6%A8%A1%E5%9E%8B/3d-unet-llm/" rel="canonical"/>
+<link href="../self-forcing/" rel="prev"/>
+<link href="../%E8%B5%84%E6%96%99%E9%93%BE%E6%8E%A5/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.7.7" name="generator"/>
+<title>3D U-Net 与 LLM 学习笔记 - Action</title>
+<link href="../../assets/stylesheets/main.ec1eaa64.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.ab4e12ef.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+</head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#_1">
+          跳转至
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header" data-md-component="header">
+<nav aria-label="页眉" class="md-header__inner md-grid">
+<a aria-label="Action" class="md-header__button md-logo" data-md-component="logo" href="../.." title="Action">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            Action
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">3D U-Net 与 LLM 学习笔记</span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="切到深色" class="md-option" data-md-color-accent="indigo" data-md-color-media="" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="切到深色">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+<input aria-label="切到浅色" class="md-option" data-md-color-accent="indigo" data-md-color-media="" data-md-color-primary="indigo" data-md-color-scheme="slate" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="切到浅色">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="搜索" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="搜索" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="查找" class="md-search__options">
+<button aria-label="清空当前内容" class="md-search__icon md-icon" tabindex="-1" title="清空当前内容" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            正在初始化搜索引擎
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<nav aria-label="标签" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+        
+  
+  
+    
+  
+  首页
+
+      </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../">
+          
+  
+  
+    
+  
+  大模型
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../%E9%9A%8F%E7%AC%94/">
+          
+  
+  
+    
+  
+  随笔
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="导航栏" class="md-nav md-nav--primary md-nav--lifted" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="Action" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="Action">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    Action
+  </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    
+  
+    首页
+  
+
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_2" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../">
+<span class="md-ellipsis">
+    
+  
+    大模型
+  
+
+    
+  </span>
+</a>
+<label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="">
+<span class="md-nav__icon md-icon"></span>
+</label>
+</div>
+<nav aria-expanded="true" aria-labelledby="__nav_2_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_2">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    大模型
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item"><a class="md-nav__link" href="../k3分析/"><span class="md-ellipsis">Kimi K3 架构分析</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="../being-h07/"><span class="md-ellipsis">Being-H0.7 论文解读</span></a></li><li class="md-nav__item md-nav__item--active"><input checked="" class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/><label class="md-nav__link md-nav__link--active" for="__toc" tabindex=""><span class="md-ellipsis">3D U-Net 与 LLM 学习笔记</span><span class="md-nav__icon md-icon"></span></label><a class="md-nav__link md-nav__link--active" href="./"><span class="md-ellipsis">3D U-Net 与 LLM 学习笔记</span></a><nav aria-label="目录" class="md-nav md-nav--secondary"><label class="md-nav__title" for="__toc"><span class="md-nav__icon md-icon"></span>目录</label><div class="toc">
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item"><a class="md-nav__link" href="#3d-u-net-llm">3D U-Net 与 LLM：从零理解与结合方式</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#_1">目录</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#1-u-net">1. U-Net 是什么</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#11-2d-u-net">1.1 2D U-Net</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#12-3d-u-net">1.2 3D U-Net</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#13">1.3 形状怎么变</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#14">1.4 计算量与显存</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#15">1.5 常见变体</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#2-3d-u-net">2. 3D U-Net 的最小代码</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#3-3d-u-net">3. 3D U-Net 用来做什么</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#31">3.1 医学体积分割</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#32-3d-occupancy-bev">3.2 3D 感知 / occupancy / BEV</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#33-vae-decoder">3.3 视频/体积生成中的 VAE / decoder</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#34-3d">3.4 3D 形状生成</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#35-3d">3.5 3D 重建/补全</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#4-llm-3d-u-net">4. LLM 与 3D U-Net 的五种结合方式</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#40">4.0 先分清两个世界</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#41-a">4.1 模式 A：文本条件注入（最常用）</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#42-b-clip-style">4.2 模式 B：特征对齐 / CLIP-style</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#43-cllm-decoder-reasoner">4.3 模式 C：LLM 作为 decoder / reasoner</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#44-dllm-agentplanner3d-u-net">4.4 模式 D：LLM 作为 agent/planner，3D U-Net 作为工具</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#45-ellm-3d">4.5 模式 E：LLM + 3D 生成模型</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#46">4.6 五种模式对比</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#5">5. 关键设计问题</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#51-3d">5.1 3D 位置编码</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#52-token">5.2 分辨率与 token 数</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#53">5.3 显存与计算</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#54">5.4 数据</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#55">5.5 训练策略</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#56">5.6 评测</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#6">6. 一个可跑的最小实验</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#61">6.1 数据</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#62">6.2 模型</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#63">6.3 训练</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#64">6.4 对比实验</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#65">6.5 预期结果</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#7">7. 论文与资源</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#71-3d-u-net">7.1 3D U-Net 基础</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#72-3d">7.2 3D + 语言</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#73-3d">7.3 3D 生成</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#74">7.4 数据与代码</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#8-4">8. 学习路线（4 周）</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#1-2d-3d">第 1 周：2D → 3D</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#2-3d">第 2 周：真实 3D 分割</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#3">第 3 周：文本条件</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#4-llm">第 4 周：LLM 结合</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#9">9. 常见误区</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#10">10. 一句话总结</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</nav></li>
+<li class="md-nav__item"><a class="md-nav__link" href="../%E4%B8%96%E7%95%8C%E6%A8%A1%E5%9E%8B/"><span class="md-ellipsis">世界模型：生成式 vs JEPA</span></a></li><li class="md-nav__item"><a class="md-nav__link" href="../%E8%B5%84%E6%96%99%E9%93%BE%E6%8E%A5/"><span class="md-ellipsis">学习资料链接收藏</span></a></li></ul>
+</nav>
+</li>
+<li class="md-nav__item md-nav__item--nested">
+<input class="md-nav__toggle md-toggle" id="__nav_3" type="checkbox"/>
+<div class="md-nav__link md-nav__container">
+<a class="md-nav__link" href="../../%E9%9A%8F%E7%AC%94/">
+<span class="md-ellipsis">
+    
+  
+    随笔
+  
+
+    
+  </span>
+</a>
+</div>
+<nav aria-expanded="false" aria-labelledby="__nav_3_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_3">
+<span class="md-nav__icon md-icon"></span>
+            
+  
+    随笔
+  
+
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="目录" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      目录
+    </label>
+<div class="toc">
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item"><a class="md-nav__link" href="#3d-u-net-llm">3D U-Net 与 LLM：从零理解与结合方式</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#_1">目录</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#1-u-net">1. U-Net 是什么</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#11-2d-u-net">1.1 2D U-Net</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#12-3d-u-net">1.2 3D U-Net</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#13">1.3 形状怎么变</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#14">1.4 计算量与显存</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#15">1.5 常见变体</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#2-3d-u-net">2. 3D U-Net 的最小代码</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#3-3d-u-net">3. 3D U-Net 用来做什么</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#31">3.1 医学体积分割</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#32-3d-occupancy-bev">3.2 3D 感知 / occupancy / BEV</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#33-vae-decoder">3.3 视频/体积生成中的 VAE / decoder</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#34-3d">3.4 3D 形状生成</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#35-3d">3.5 3D 重建/补全</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#4-llm-3d-u-net">4. LLM 与 3D U-Net 的五种结合方式</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#40">4.0 先分清两个世界</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#41-a">4.1 模式 A：文本条件注入（最常用）</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#42-b-clip-style">4.2 模式 B：特征对齐 / CLIP-style</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#43-cllm-decoder-reasoner">4.3 模式 C：LLM 作为 decoder / reasoner</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#44-dllm-agentplanner3d-u-net">4.4 模式 D：LLM 作为 agent/planner，3D U-Net 作为工具</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#45-ellm-3d">4.5 模式 E：LLM + 3D 生成模型</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#46">4.6 五种模式对比</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#5">5. 关键设计问题</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#51-3d">5.1 3D 位置编码</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#52-token">5.2 分辨率与 token 数</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#53">5.3 显存与计算</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#54">5.4 数据</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#55">5.5 训练策略</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#56">5.6 评测</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#6">6. 一个可跑的最小实验</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#61">6.1 数据</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#62">6.2 模型</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#63">6.3 训练</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#64">6.4 对比实验</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#65">6.5 预期结果</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#7">7. 论文与资源</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#71-3d-u-net">7.1 3D U-Net 基础</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#72-3d">7.2 3D + 语言</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#73-3d">7.3 3D 生成</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#74">7.4 数据与代码</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#8-4">8. 学习路线（4 周）</a><ul class="md-nav__list">
+<li class="md-nav__item"><a class="md-nav__link" href="#1-2d-3d">第 1 周：2D → 3D</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#2-3d">第 2 周：真实 3D 分割</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#3">第 3 周：文本条件</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#4-llm">第 4 周：LLM 结合</a></li>
+</ul>
+</li>
+<li class="md-nav__item"><a class="md-nav__link" href="#9">9. 常见误区</a></li>
+<li class="md-nav__item"><a class="md-nav__link" href="#10">10. 一句话总结</a></li>
+</ul>
+</li>
+</ul>
+</div>
+
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset"><nav class="md-tags"><span class="md-tag">3D</span><span class="md-tag">U-Net</span><span class="md-tag">LLM</span><span class="md-tag">学习笔记</span></nav><h1 id="3d-u-net-llm">3D U-Net 与 LLM：从零理解与结合方式</h1>
+<blockquote>
+<p>目标：搞清楚 3D U-Net 是什么、为什么这样设计、代码怎么写，以及它和 LLM 到底能怎么结合。</p>
+<p>先给结论：<strong>3D U-Net 不是 LLM 的一部分，LLM 也不是 3D U-Net 的一部分。</strong> 两者结合，本质上是在解决“1D 语言序列”和“3D 体素网格”之间的接口问题。常见结合方式有五种：文本条件注入、特征对齐、LLM 当 decoder/reasoner、LLM 当 agent 调工具、LLM + 3D 生成模型。</p>
+</blockquote>
+<hr />
+<h2 id="_1">目录</h2>
+<ol>
+<li>U-Net 是什么</li>
+<li>3D U-Net 是什么</li>
+<li>3D U-Net 的最小代码</li>
+<li>3D U-Net 用来做什么</li>
+<li>LLM 与 3D U-Net 的五种结合方式</li>
+<li>关键设计问题</li>
+<li>一个可跑的最小实验</li>
+<li>论文与资源</li>
+<li>学习路线</li>
+<li>常见误区</li>
+</ol>
+<hr />
+<h2 id="1-u-net">1. U-Net 是什么</h2>
+<h3 id="11-2d-u-net">1.1 2D U-Net</h3>
+<p>U-Net（Ronneberger et al., 2015）最初是医学图像分割网络。结构像一个“U”：</p>
+<pre><code>输入 H×W
+  │
+  ├─ Encoder：Conv → Down → Conv → Down → ... → bottleneck
+  │                                              │
+  └─ Decoder：Up → Concat(skip) → Conv → Up → ... → 输出 H×W
+</code></pre>
+<p>三个关键点：</p>
+<ol>
+<li><strong>Encoder-Decoder</strong>：encoder 不断下采样，扩大感受野，提取语义；decoder 不断上采样，恢复分辨率。</li>
+<li><strong>Skip connection</strong>：把 encoder 同尺度的特征直接拼到 decoder，保留边缘、纹理等细节。</li>
+<li><strong>多尺度</strong>：不同层级对应不同大小的物体，适合分割。</li>
+</ol>
+<p>为什么有效：分割需要“这是什么”（语义）和“在哪里”（位置）。Encoder 负责语义，skip 负责位置，decoder 把两者融合。</p>
+<h3 id="12-3d-u-net">1.2 3D U-Net</h3>
+<p>3D U-Net（Çiçek et al., MICCAI 2016）就是把 2D 的卷积、池化、上采样全部换成 3D：</p>
+<pre><code>输入 D×H×W（或 C×D×H×W）
+  │
+  ├─ Conv3d(3×3×3) → MaxPool3d(2×2×2) → ...
+  │
+  └─ ConvTranspose3d(2×2×2) → Concat(skip) → Conv3d → ...
+</code></pre>
+<p>和 2D U-Net 的区别：</p>
+<table>
+<thead>
+<tr>
+<th>维度</th>
+<th>2D U-Net</th>
+<th>3D U-Net</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>输入</td>
+<td>H×W</td>
+<td>D×H×W</td>
+</tr>
+<tr>
+<td>卷积</td>
+<td>Conv2d 3×3</td>
+<td>Conv3d 3×3×3</td>
+</tr>
+<tr>
+<td>下采样</td>
+<td>2×2</td>
+<td>2×2×2</td>
+</tr>
+<tr>
+<td>上采样</td>
+<td>2×2</td>
+<td>2×2×2</td>
+</tr>
+<tr>
+<td>显存</td>
+<td>低</td>
+<td>高一个维度</td>
+</tr>
+<tr>
+<td>典型数据</td>
+<td>2D 图像</td>
+<td>CT/MRI 体积、视频、体素、点云 voxel</td>
+</tr>
+</tbody>
+</table>
+<p><strong>原论文的一个细节</strong>：医学体素常常是各向异性的（层内分辨率高、层间分辨率低，比如 CT 的 z 轴间距远大于 x/y）。所以 3D U-Net 并不总是用 3×3×3，也会用 3×3×1 的卷积核，尤其在首尾层。这是“3D”与“各向同性 3D”的区别。</p>
+<h3 id="13">1.3 形状怎么变</h3>
+<p>假设输入 <code>(B, C, D, H, W)</code>，每次 <code>MaxPool3d(2)</code>：</p>
+<pre><code>D×H×W → D/2×H/2×W/2 → D/4×H/4×W/4 → D/8×H/8×W/8
+</code></pre>
+<p>上采样再逐级恢复。<strong>要求 D、H、W 能被 2 的层数次方整除</strong>，否则 concat 时尺寸对不上。常见做法是 pad 或 resize 到 16 的倍数。</p>
+<h3 id="14">1.4 计算量与显存</h3>
+<p>3D 卷积的计算量大致是 2D 的 <code>D</code> 倍，显存也是。一个 <code>(1, 1, 128, 128, 128)</code> 的输入，单层 32 通道 3×3×3 卷积就很吃显存。</p>
+<p>常用省显存手段：</p>
+<ul>
+<li><strong>Patch training</strong>：不从整个体积训练，随机裁 <code>(64, 64, 64)</code> 或 <code>(96, 96, 96)</code> 的 patch。</li>
+<li><strong>Mixed precision</strong>：AMP。</li>
+<li><strong>Gradient checkpointing</strong>：用时间换显存。</li>
+<li><strong>Anisotropic kernel</strong>：<code>3×3×1</code> 减少 z 方向计算。</li>
+<li><strong>Downsample early</strong>：第一层就 stride 2，或者用更小的 base channel。</li>
+<li><strong>Sliding window inference</strong>：推理时切 patch，重叠拼接。</li>
+</ul>
+<h3 id="15">1.5 常见变体</h3>
+<table>
+<thead>
+<tr>
+<th>变体</th>
+<th>关键改动</th>
+<th>用途</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>V-Net</td>
+<td>残差块 + Dice loss</td>
+<td>3D 医学分割</td>
+</tr>
+<tr>
+<td>Attention U-Net</td>
+<td>skip 上加注意力门</td>
+<td>抑制无关区域</td>
+</tr>
+<tr>
+<td>nnU-Net</td>
+<td>自动配置 2D/3D/cascade</td>
+<td>医学分割强基线</td>
+</tr>
+<tr>
+<td>SwinUNETR</td>
+<td>Transformer + U-Net 结构</td>
+<td>3D 医学分割</td>
+</tr>
+<tr>
+<td>ResUNet</td>
+<td>残差连接</td>
+<td>更深的 3D 网络</td>
+</tr>
+<tr>
+<td>3D U-Net + cross-attention</td>
+<td>在 bottleneck 注入文本/条件</td>
+<td>条件生成、文本分割</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-3d-u-net">2. 3D U-Net 的最小代码</h2>
+<p>下面是一个可以直接跑的最小 3D U-Net（输入 <code>B×1×D×H×W</code>，输出 <code>B×num_classes×D×H×W</code>）：</p>
+<pre><code class="language-python">import torch
+import torch.nn as nn
+
+
+class DoubleConv3d(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Conv3d(in_ch, out_ch, 3, padding=1, bias=False),
+            nn.BatchNorm3d(out_ch),
+            nn.ReLU(inplace=True),
+            nn.Conv3d(out_ch, out_ch, 3, padding=1, bias=False),
+            nn.BatchNorm3d(out_ch),
+            nn.ReLU(inplace=True),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class Down3d(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.MaxPool3d(2),
+            DoubleConv3d(in_ch, out_ch),
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+
+class Up3d(nn.Module):
+    def __init__(self, in_ch, out_ch):
+        super().__init__()
+        self.up = nn.ConvTranspose3d(in_ch, out_ch, kernel_size=2, stride=2)
+        self.conv = DoubleConv3d(out_ch * 2, out_ch)
+
+    def forward(self, x, skip):
+        x = self.up(x)
+        x = torch.cat([x, skip], dim=1)
+        return self.conv(x)
+
+
+class UNet3d(nn.Module):
+    def __init__(self, in_ch=1, out_ch=2, base=32):
+        super().__init__()
+        self.inc = DoubleConv3d(in_ch, base)
+        self.d1 = Down3d(base, base * 2)
+        self.d2 = Down3d(base * 2, base * 4)
+        self.d3 = Down3d(base * 4, base * 8)
+        self.u3 = Up3d(base * 8, base * 4)
+        self.u2 = Up3d(base * 4, base * 2)
+        self.u1 = Up3d(base * 2, base)
+        self.out = nn.Conv3d(base, out_ch, 1)
+
+    def forward(self, x):
+        x1 = self.inc(x)      # D, H, W
+        x2 = self.d1(x1)      # D/2, H/2, W/2
+        x3 = self.d2(x2)      # D/4, H/4, W/4
+        x4 = self.d3(x3)      # D/8, H/8, W/8
+        x = self.u3(x4, x3)   # D/4, H/4, W/4
+        x = self.u2(x, x2)    # D/2, H/2, W/2
+        x = self.u1(x, x1)    # D, H, W
+        return self.out(x)
+
+
+if __name__ == &quot;__main__&quot;:
+    model = UNet3d(in_ch=1, out_ch=3, base=16)
+    x = torch.randn(2, 1, 64, 64, 64)
+    y = model(x)
+    print(x.shape, &quot;-&gt;&quot;, y.shape)  # (2,1,64,64,64) -&gt; (2,3,64,64,64)
+</code></pre>
+<p>几个容易踩的点：</p>
+<ul>
+<li><code>ConvTranspose3d</code> 的 <code>kernel_size=2, stride=2</code> 正好把尺寸翻倍；如果输入是奇数，会差 1，需要 <code>output_padding=1</code> 或 pad。</li>
+<li><code>BatchNorm3d</code> 在 batch 很小时不稳定，医学分割常用 <code>InstanceNorm3d</code> 或 <code>GroupNorm</code>。</li>
+<li>3D 数据增强：随机翻转、旋转 90°、弹性变形、gamma、噪声；不要做会破坏解剖结构的强仿射。</li>
+<li>损失：CE + Dice 是常见组合；类别极不平衡时用 Dice 或 Tversky。</li>
+</ul>
+<hr />
+<h2 id="3-3d-u-net">3. 3D U-Net 用来做什么</h2>
+<h3 id="31">3.1 医学体积分割</h3>
+<p>最经典：CT/MRI 的器官、肿瘤、病灶分割。</p>
+<ul>
+<li>数据：BraTS（脑肿瘤 MRI）、BTCV（腹部多器官 CT）、MSD（Medical Segmentation Decathlon）。</li>
+<li>输出：每个体素的类别。</li>
+<li>评价：Dice、IoU、HD95（Hausdorff distance）。</li>
+</ul>
+<h3 id="32-3d-occupancy-bev">3.2 3D 感知 / occupancy / BEV</h3>
+<p>自动驾驶里，3D U-Net 或其变体常用于：</p>
+<ul>
+<li>体素级 occupancy 预测（哪些 voxel 被占据）；</li>
+<li>BEV 特征图的分割/回归；</li>
+<li>多视角特征 lift 到 3D 后的融合。</li>
+</ul>
+<p>这类任务输入可能是多相机特征体、LiDAR voxel、或者 BEV 栅格。3D U-Net 负责“局部细节 + 多尺度上下文”。</p>
+<h3 id="33-vae-decoder">3.3 视频/体积生成中的 VAE / decoder</h3>
+<p>视频生成模型（包括世界模型）常用 3D VAE 把视频压到 latent，再用 diffusion/flow 在 latent 上生成。3D U-Net 结构可以出现在：</p>
+<ul>
+<li>VAE 的 encoder/decoder（3D 卷积 + 下/上采样）；</li>
+<li>视频分割/补全；</li>
+<li>体素/NeRF 特征的解码。</li>
+</ul>
+<p>注意：<strong>视频生成的主力通常是 3D VAE + DiT/UNet-based diffusion</strong>，不是“纯 3D U-Net 直接生成视频”。3D U-Net 更多是 backbone 或 decoder 的一部分。</p>
+<h3 id="34-3d">3.4 3D 形状生成</h3>
+<ul>
+<li>体素表示：3D U-Net 做 coarse shape 生成或 refinement；</li>
+<li>点云 voxelization 后做 3D 卷积；</li>
+<li>和 diffusion 结合：在低分辨率体素上用 3D U-Net 做 denoiser，再上采样。</li>
+</ul>
+<h3 id="35-3d">3.5 3D 重建/补全</h3>
+<ul>
+<li>稀疏视角 → 体积重建；</li>
+<li>深度图融合 → TSDF/occupancy；</li>
+<li>医学图像的超分/去噪/配准（3D U-Net 作为 backbone）。</li>
+</ul>
+<hr />
+<h2 id="4-llm-3d-u-net">4. LLM 与 3D U-Net 的五种结合方式</h2>
+<h3 id="40">4.0 先分清两个世界</h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>LLM</th>
+<th>3D U-Net</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>输入</td>
+<td>token 序列 (B, L)</td>
+<td>体素网格 (B, C, D, H, W)</td>
+</tr>
+<tr>
+<td>基本算子</td>
+<td>attention / FFN</td>
+<td>Conv3d / pooling / upsampling</td>
+</tr>
+<tr>
+<td>位置</td>
+<td>1D 位置编码</td>
+<td>3D 空间结构（隐式在卷积里）</td>
+</tr>
+<tr>
+<td>输出</td>
+<td>下一个 token / 文本 embedding</td>
+<td>体素级特征/分割/生成</td>
+</tr>
+<tr>
+<td>强项</td>
+<td>语义、推理、指令理解</td>
+<td>空间定位、局部细节、密集预测</td>
+</tr>
+</tbody>
+</table>
+<p>所以“结合”不是把 LLM 塞进卷积，而是找一个接口，让语言信息进入 3D 网络，或者让 3D 特征进入 LLM。</p>
+<h3 id="41-a">4.1 模式 A：文本条件注入（最常用）</h3>
+<p><strong>做法</strong>：用冻结的文本编码器（CLIP/T5/LLM）把指令编码成 <code>(B, L, C_text)</code>，在 3D U-Net 的某个位置注入。</p>
+<p>三种注入方式：</p>
+<ol>
+<li><strong>Cross-attention</strong>：在 bottleneck 或 decoder 的每一层，用 3D 特征做 query，文本 embedding 做 key/value。</li>
+<li><strong>FiLM</strong>：用文本 embedding 生成逐通道的 <code>scale</code> 和 <code>shift</code>，调制 3D 特征：<code>x = x * (1 + gamma) + beta</code>。</li>
+<li><strong>AdaLN</strong>：diffusion 里常见，把文本/时间条件注入 LayerNorm 的仿射参数。</li>
+</ol>
+<p>代码示意（bottleneck cross-attention）：</p>
+<pre><code class="language-python">class CrossAttn3d(nn.Module):
+    def __init__(self, dim, text_dim, heads=4):
+        super().__init__()
+        self.norm = nn.LayerNorm(dim)
+        self.q = nn.Linear(dim, dim)
+        self.kv = nn.Linear(text_dim, dim * 2)
+        self.attn = nn.MultiheadAttention(dim, heads, batch_first=True)
+        self.ffn = nn.Sequential(
+            nn.LayerNorm(dim),
+            nn.Linear(dim, dim * 4),
+            nn.GELU(),
+            nn.Linear(dim * 4, dim),
+        )
+
+    def forward(self, x, text):
+        # x: (B, C, D, H, W), text: (B, L, C_text)
+        B, C, D, H, W = x.shape
+        tokens = x.flatten(2).transpose(1, 2)      # (B, N, C)
+        q = self.q(self.norm(tokens))
+        k, v = self.kv(text).chunk(2, dim=-1)      # (B, L, C)
+        attn, _ = self.attn(q, k, v, need_weights=False)
+        tokens = tokens + attn
+        tokens = tokens + self.ffn(tokens)
+        return tokens.transpose(1, 2).view(B, C, D, H, W)
+</code></pre>
+<p><strong>优点</strong>：实现简单，文本编码器可以冻结；适合“文本引导分割/生成”。<br />
+<strong>缺点</strong>：只在 bottleneck 注入，空间定位弱；全分辨率 cross-attention 太贵；文本和 3D 位置的对齐需要额外设计。</p>
+<h3 id="42-b-clip-style">4.2 模式 B：特征对齐 / CLIP-style</h3>
+<p><strong>做法</strong>：3D U-Net 的 encoder 输出一个全局 3D 特征，文本编码器输出文本特征，做对比学习（InfoNCE）。推理时，文本特征和 3D 局部特征算相似度，得到 zero-shot 分割/定位。</p>
+<pre><code>3D volume → 3D U-Net encoder → global feature ─┐
+                                               ├─ contrastive loss
+text     → text encoder      → text feature  ─┘
+</code></pre>
+<p><strong>优点</strong>：可以 zero-shot、开放词汇；不需要为每个类别训分类头。<br />
+<strong>缺点</strong>：需要大量 3D-text 配对数据；全局对齐不等于像素级 grounding；细粒度定位通常还要再加一个 decoder。</p>
+<p>这类似 3D 版的 CLIP。医学里的 BiomedCLIP、3D-LLM/PointLLM 的视觉-语言对齐都属于这一类思路。</p>
+<h3 id="43-cllm-decoder-reasoner">4.3 模式 C：LLM 作为 decoder / reasoner</h3>
+<p><strong>做法</strong>：3D U-Net 先把体积压成特征/token，投影到 LLM 的 embedding 空间，再让 LLM 结合文本做推理/回答/输出结构化结果。</p>
+<pre><code>3D volume → 3D U-Net encoder → 3D tokens → projector → LLM → 文本/框/掩码
+</code></pre>
+<p>或者反过来：</p>
+<pre><code>文本/场景图 → LLM → latent code → 3D U-Net decoder → 体积
+</code></pre>
+<p><strong>优点</strong>：LLM 的语义和推理能力强；适合 VQA、报告生成、指令理解。<br />
+<strong>缺点</strong>：3D token 数量大，LLM 上下文吃不消；需要 3D 位置编码；空间分辨率在 tokenization 时会丢；训练数据难。</p>
+<p>代表工作：3D-LLM、PointLLM、Chat-3D、LEO、LL3DA。它们多用点云/多视角特征，但“3D encoder → projector → LLM”的模式是一样的。</p>
+<h3 id="44-dllm-agentplanner3d-u-net">4.4 模式 D：LLM 作为 agent/planner，3D U-Net 作为工具</h3>
+<p><strong>做法</strong>：LLM 不直接处理 3D 数据，而是理解用户指令，决定调用哪个 3D U-Net 工具（分割肝脏、检测肿瘤、生成某区域），再把结果组合成回答。</p>
+<pre><code>用户：帮我看看这个 CT 里肝脏有没有病灶
+LLM → 调用 liver_seg_3dunet(volume) → 调用 lesion_seg_3dunet(liver_region)
+    → 汇总：病灶位置、大小、置信度
+</code></pre>
+<p><strong>优点</strong>：模块化、可解释、易调试；每个 3D U-Net 可以单独训练/替换。<br />
+<strong>缺点</strong>：错误会传播；工具接口和返回值设计很关键；LLM 看不到原始体素，只能看工具输出。</p>
+<p>这是医疗 copilot、具身 agent 里最现实的结合方式：<strong>LLM 做编排，3D U-Net 做感知/分割</strong>。</p>
+<h3 id="45-ellm-3d">4.5 模式 E：LLM + 3D 生成模型</h3>
+<p><strong>做法</strong>：LLM 负责文本理解、场景图/布局生成，3D U-Net（或 3D diffusion/VAE）负责形状/体素生成。</p>
+<pre><code>文本 → LLM → 场景图/布局/材质描述 → 3D 生成模型（3D U-Net decoder / diffusion）→ 3D 资产
+</code></pre>
+<p><strong>优点</strong>：利用 LLM 的世界知识和组合能力；适合 text-to-3D、场景生成。<br />
+<strong>缺点</strong>：3D 生成质量、几何一致性、评估都是难点；LLM 和 3D 生成器通常分开训练，联合优化难。</p>
+<p>注意：现在 text-to-3D 的主流不是“3D U-Net 直接出体素”，而是 NeRF/Gaussian/ mesh + diffusion，3D U-Net 更多出现在 VAE/decoder 或 coarse stage。</p>
+<h3 id="46">4.6 五种模式对比</h3>
+<table>
+<thead>
+<tr>
+<th>模式</th>
+<th>语言怎么进 3D</th>
+<th>3D 怎么进 LLM</th>
+<th>训练难度</th>
+<th>典型任务</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>A 文本条件注入</td>
+<td>cross-attn / FiLM / AdaLN</td>
+<td>不需要</td>
+<td>中</td>
+<td>文本引导分割、条件生成</td>
+</tr>
+<tr>
+<td>B 特征对齐</td>
+<td>对比学习共享空间</td>
+<td>全局/局部特征</td>
+<td>中高</td>
+<td>zero-shot 分割、开放词汇</td>
+</tr>
+<tr>
+<td>C LLM decoder</td>
+<td>3D token → projector → LLM</td>
+<td>3D tokens</td>
+<td>高</td>
+<td>3D VQA、报告生成、grounding</td>
+</tr>
+<tr>
+<td>D LLM agent</td>
+<td>LLM 调 3D U-Net 工具</td>
+<td>工具返回值</td>
+<td>低中</td>
+<td>医疗 copilot、具身任务</td>
+</tr>
+<tr>
+<td>E LLM + 3D 生成</td>
+<td>文本/场景图 → 3D 生成器</td>
+<td>不一定</td>
+<td>高</td>
+<td>text-to-3D、场景生成</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="5">5. 关键设计问题</h2>
+<h3 id="51-3d">5.1 3D 位置编码</h3>
+<p>LLM 的 token 有 1D 位置编码；3D U-Net 的特征有 3D 结构。把 3D 特征送进 LLM 时，必须告诉 LLM “这个 token 在体积的哪里”。</p>
+<p>常见做法：</p>
+<ul>
+<li>3D 正弦/余弦位置编码，按 <code>(d, h, w)</code> 三轴编码后拼接；</li>
+<li>可学习的 3D position embedding；</li>
+<li>把 3D 特征按扫描顺序 flatten，再加 1D 位置编码（会丢 3D 邻接）；</li>
+<li>用 3D rotary position embedding（3D RoPE），在 attention 里注入三轴位置。</li>
+</ul>
+<p>没有 3D 位置编码，LLM 只能看到“一堆特征”，无法做空间 grounding。</p>
+<h3 id="52-token">5.2 分辨率与 token 数</h3>
+<p>一个 <code>128×128×128</code> 的体素，如果每个 voxel 一个 token，就是 200 万 token，LLM 根本吃不下。</p>
+<p>常见压缩：</p>
+<ul>
+<li>3D U-Net 下采样 8 倍 → <code>16×16×16 = 4096</code> token；</li>
+<li>只取 bottleneck 特征；</li>
+<li>用 query token（learnable queries）做 cross-attention，固定输出 64/128 个 token；</li>
+<li>分 patch，每个 patch 一个 token；</li>
+<li>只对感兴趣区域（ROI）做高分辨率。</li>
+</ul>
+<h3 id="53">5.3 显存与计算</h3>
+<ul>
+<li>3D U-Net 本身已经吃显存；再加 cross-attention 会更贵。</li>
+<li>优先在 bottleneck 或低分辨率层做 cross-attention，不要在全分辨率做。</li>
+<li>用 <code>F.scaled_dot_product_attention</code> / FlashAttention。</li>
+<li>文本 token 通常只有几十个，cross-attention 的 KV 很小，瓶颈在 3D 的 query 数量。</li>
+<li>训练时冻结文本编码器，只训 3D U-Net + projector，能省很多显存。</li>
+</ul>
+<h3 id="54">5.4 数据</h3>
+<p>3D-text 配对数据比 2D 少得多。常见来源：</p>
+<ul>
+<li>医学报告 + CT/MRI（报告里描述病灶位置、大小）；</li>
+<li>3D 资产 + 描述（ShapeNet/Objaverse 的 caption）；</li>
+<li>自动驾驶场景 + 语言指令（nuScenes + 描述）；</li>
+<li>合成数据（程序生成 3D 形状 + 模板化文本）。</li>
+</ul>
+<p>如果数据少，先做<strong>模板化文本 + 合成数据</strong>，验证接口和训练流程，再上真实数据。</p>
+<h3 id="55">5.5 训练策略</h3>
+<p>推荐顺序：</p>
+<ol>
+<li><strong>只训 3D U-Net</strong>：用分割/重建任务预训练，确保 3D 特征可用。</li>
+<li><strong>冻结 3D U-Net，训 projector + LLM adapter</strong>：对齐语言和 3D 特征。</li>
+<li><strong>解冻部分 3D U-Net 层 + LoRA</strong>：联合微调。</li>
+<li><strong>全量联合训练</strong>：数据量足够时再考虑。</li>
+</ol>
+<p>不要一上来端到端全量训练，容易崩。</p>
+<h3 id="56">5.6 评测</h3>
+<ul>
+<li>分割：Dice、IoU、HD95。</li>
+<li>Grounding：文本指代区域的 IoU、命中率。</li>
+<li>生成：Chamfer distance、FID、CLIP score、人工评分。</li>
+<li>VQA/报告：准确率、BLEU/ROUGE、临床指标、人工。</li>
+<li>Agent：任务成功率、工具调用次数、延迟。</li>
+</ul>
+<hr />
+<h2 id="6">6. 一个可跑的最小实验</h2>
+<p>目标：让 3D U-Net 根据文本生成/分割一个简单的 3D 形状。</p>
+<h3 id="61">6.1 数据</h3>
+<p>程序生成 <code>32×32×32</code> 的体素：</p>
+<ul>
+<li>形状：cube / sphere / cylinder；</li>
+<li>颜色/属性：red / blue / green（用不同通道或类别表示）；</li>
+<li>文本模板：<code>"a red cube"</code>, <code>"a blue sphere"</code>, <code>"a green cylinder"</code>。</li>
+</ul>
+<p>任务 A（分割）：输入体素 + 文本，输出该形状的 mask。<br />
+任务 B（生成）：输入文本 + 噪声，输出体素（可以用 3D U-Net 做 denoiser）。</p>
+<h3 id="62">6.2 模型</h3>
+<pre><code class="language-python"># 伪代码
+text_emb = frozen_clip_text(prompt)          # (B, L, 512)
+volume = volume.float().unsqueeze(1)         # (B, 1, 32, 32, 32)
+
+# 3D U-Net encoder
+x1 = inc(volume)
+x2 = d1(x1)
+x3 = d2(x2)
+x4 = d3(x3)                                  # bottleneck
+
+# 在 bottleneck 注入文本
+x4 = cross_attn(x4, text_emb)
+
+# decoder
+x = u3(x4, x3)
+x = u2(x, x2)
+x = u1(x, x1)
+mask = out(x)                                # (B, 1, 32, 32, 32)
+</code></pre>
+<h3 id="63">6.3 训练</h3>
+<ul>
+<li>Loss：BCE + Dice。</li>
+<li>优化器：AdamW，lr 1e-4。</li>
+<li>Batch：8–16。</li>
+<li>训练 20–50 epoch，单卡即可。</li>
+<li>数据增强：随机旋转 90°、翻转、平移。</li>
+</ul>
+<h3 id="64">6.4 对比实验</h3>
+<table>
+<thead>
+<tr>
+<th>设置</th>
+<th>目的</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>无文本，只输入体素</td>
+<td>baseline：模型能不能只靠形状猜</td>
+</tr>
+<tr>
+<td>文本 + FiLM</td>
+<td>最简单的条件注入</td>
+</tr>
+<tr>
+<td>文本 + bottleneck cross-attention</td>
+<td>本文方法</td>
+</tr>
+<tr>
+<td>文本 + 每层 cross-attention</td>
+<td>看空间条件是否更强</td>
+</tr>
+<tr>
+<td>错误文本（"blue sphere" 但输入 red cube）</td>
+<td>看模型是否真的听文本</td>
+</tr>
+</tbody>
+</table>
+<h3 id="65">6.5 预期结果</h3>
+<ul>
+<li>无文本 baseline 只能学到先验，遇到同形状不同颜色会错；</li>
+<li>FiLM 能区分全局属性，但空间定位弱；</li>
+<li>cross-attention 在“按文本选形状/颜色”上更好；</li>
+<li>错误文本实验能暴露模型是否忽略语言。</li>
+</ul>
+<p>这个实验很小，但能把“3D 条件注入”的整个链路跑通。</p>
+<hr />
+<h2 id="7">7. 论文与资源</h2>
+<h3 id="71-3d-u-net">7.1 3D U-Net 基础</h3>
+<ul>
+<li>Ronneberger O, Fischer P, Brox T. U-Net: Convolutional Networks for Biomedical Image Segmentation. MICCAI 2015.</li>
+<li>Çiçek Ö, Abdulkadir A, Lienkamp S S, Brox T, Ronneberger O. 3D U-Net: Learning Dense Volumetric Segmentation from Sparse Annotation. MICCAI 2016.</li>
+<li>Milletari F, Navab N, Ahmadi S A. V-Net: Fully Convolutional Neural Networks for Volumetric Medical Image Segmentation. 3DV 2016.</li>
+<li>Isensee F, et al. nnU-Net: a self-configuring method for deep learning-based biomedical image segmentation. Nature Methods 2021.</li>
+<li>Hatamizadeh A, et al. Swin UNETR: Swin Transformers for Semantic Segmentation of Brain Tumors in MRI Images. 2022.</li>
+<li>Oktay O, et al. Attention U-Net: Learning Where to Look for the Pancreas. 2018.</li>
+</ul>
+<h3 id="72-3d">7.2 3D + 语言</h3>
+<ul>
+<li>Hong Y, et al. 3D-LLM: Injecting the 3D World into Large Language Models. NeurIPS 2023.</li>
+<li>Xu R, et al. PointLLM: Empowering Large Language Models to Understand Point Clouds. 2023.</li>
+<li>Wang Z, et al. Chat-3D: Data-efficiently Tuning Large Language Model for Universal Dialogue of 3D Scenes. 2023.</li>
+<li>Huang J, et al. LEO: An Embodied Generalist Agent in 3D World. ICML 2024.</li>
+<li>Chen S, et al. LL3DA: Visual Interactive Instruction Tuning for Omni-3D Understanding, Reasoning, and Planning. CVPR 2024.</li>
+<li>Zhang S, et al. BiomedCLIP: a multimodal biomedical foundation model pretrained from fifteen million scientific image-text pairs. 2023.</li>
+</ul>
+<h3 id="73-3d">7.3 3D 生成</h3>
+<ul>
+<li>Poole B, et al. DreamFusion: Text-to-3D using 2D Diffusion. ICLR 2023.</li>
+<li>Lin C-H, et al. Magic3D: High-Resolution Text-to-3D Content Creation. CVPR 2023.</li>
+<li>Wang T, et al. Rodin: A Generative Model for Sculpting 3D Digital Avatars Using Diffusion. CVPR 2023.</li>
+</ul>
+<h3 id="74">7.4 数据与代码</h3>
+<ul>
+<li>BraTS: https://www.med.upenn.edu/cbica/brats/</li>
+<li>BTCV: https://www.synapse.org/#!Synapse:syn3193805</li>
+<li>MSD: http://medicaldecathlon.com/</li>
+<li>ShapeNet: https://shapenet.org/</li>
+<li>Objaverse: https://objaverse.allenai.org/</li>
+<li>MONAI: https://monai.io/ （3D U-Net、数据加载、增强）</li>
+<li>nnU-Net: https://github.com/MIC-DKFZ/nnUNet</li>
+<li>PyTorch3D: https://pytorch3d.org/</li>
+</ul>
+<hr />
+<h2 id="8-4">8. 学习路线（4 周）</h2>
+<h3 id="1-2d-3d">第 1 周：2D → 3D</h3>
+<ul>
+<li>手写 2D U-Net，理解 encoder/decoder/skip。</li>
+<li>改成 3D U-Net，跑通 <code>(1,1,64,64,64) → (1,3,64,64,64)</code>。</li>
+<li>观察参数量、显存、感受野。</li>
+</ul>
+<h3 id="2-3d">第 2 周：真实 3D 分割</h3>
+<ul>
+<li>选 BraTS 或 MSD 的一个小任务。</li>
+<li>实现 patch training、Dice loss、滑动窗口推理。</li>
+<li>跑一个 baseline，记录 Dice。</li>
+</ul>
+<h3 id="3">第 3 周：文本条件</h3>
+<ul>
+<li>用 CLIP 文本编码器 + FiLM，做合成形状的文本条件分割。</li>
+<li>换成 cross-attention，对比效果。</li>
+<li>做“错误文本”实验。</li>
+</ul>
+<h3 id="4-llm">第 4 周：LLM 结合</h3>
+<ul>
+<li>读 3D-LLM / PointLLM，画清楚它们的 3D encoder → projector → LLM 流程。</li>
+<li>用一个小 LLM（Qwen2.5-0.5B/1.5B）做 projector + 文本输出，跑一个 toy 3D VQA。</li>
+<li>或者做模式 D：LLM 调 3D U-Net 工具，做一个“医学报告生成”小 demo。</li>
+</ul>
+<hr />
+<h2 id="9">9. 常见误区</h2>
+<ol>
+<li><strong>“3D U-Net 是 3D 版的 Transformer”</strong>：不是。它仍是卷积网络，强项是局部特征和密集预测，不是长程推理。</li>
+<li><strong>“LLM 可以直接处理体素”</strong>：不能。必须经过 tokenizer/projector/工具接口，把 3D 变成 1D token 或结构化输出。</li>
+<li><strong>“把 3D 特征 flatten 给 LLM 就行”</strong>：会丢 3D 邻接和位置，token 数也爆炸。需要 3D 位置编码和压缩。</li>
+<li><strong>“3D U-Net + LLM 一定要端到端训练”</strong>：不一定。模式 D（LLM 调工具）最省事；模式 A（条件注入）可以冻结文本编码器；端到端最贵。</li>
+<li><strong>“3D 分割 Dice 高就说明语言理解好”</strong>：不一定。可能是数据集先验/类别不平衡。要做错误文本、反事实、zero-shot 测试。</li>
+<li><strong>“3D U-Net 只能做分割”</strong>：它也可以做去噪、重建、VAE、occupancy、生成 backbone。</li>
+<li><strong>“体素分辨率越高越好”</strong>：显存和 token 数会爆炸；先用低分辨率验证方法，再上高分辨率。</li>
+</ol>
+<hr />
+<h2 id="10">10. 一句话总结</h2>
+<ul>
+<li><strong>3D U-Net</strong> = 在 3D 体素上做“下采样-上采样 + skip”的卷积网络，强项是密集预测和空间定位。</li>
+<li><strong>LLM</strong> = 1D 序列上的语义/推理模型，强项是语言理解和组合。</li>
+<li><strong>结合</strong> = 在两者之间建接口：文本条件注入（A）、特征对齐（B）、LLM 当 decoder（C）、LLM 当 agent 调工具（D）、LLM + 3D 生成（E）。</li>
+<li><strong>最难的不是网络结构，而是</strong>：3D 位置编码、token 压缩、3D-text 数据、空间 grounding 的评测。</li>
+</ul>
+<hr />
+<p><em>笔记版本：2026-11-18。建议先跑第 2 节的 3D U-Net，再做第 6 节的 toy 实验；不要一开始就上大模型和大体素。</em></p></article>
+</div>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  回到页面顶部
+</button>
+</main>
+<footer class="md-footer">
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.top", "navigation.indexes", "search.suggest", "search.highlight", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "\u5df2\u590d\u5236", "clipboard.copy": "\u590d\u5236", "search.result.more.one": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.more.other": "\u5728\u8be5\u9875\u4e0a\u8fd8\u6709 # \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.none": "\u6ca1\u6709\u627e\u5230\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.one": "\u627e\u5230 1 \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.other": "# \u4e2a\u7b26\u5408\u6761\u4ef6\u7684\u7ed3\u679c", "search.result.placeholder": "\u952e\u5165\u4ee5\u5f00\u59cb\u641c\u7d22", "search.result.term.missing": "\u7f3a\u5c11", "select.version": "\u9009\u62e9\u5f53\u524d\u7248\u672c"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.d7400e89.min.js"></script>
+<script src="../../javascripts/mathjax.js"></script>
+<script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+</body>
+</html>
