@@ -585,6 +585,10 @@
 <h2 id="1-silu-swiglu">1. SiLU 与 SwiGLU 的病根</h2>
 <h3 id="11-silu">1.1 SiLU 本体</h3>
 <p><span class="arithmatex">\(SiLU(x) = x \cdot \sigma(x)\)</span>（aka Swish）。三个关键特征：正区 ≈ 恒等（<strong>线性增长、无上界</strong>）；负区小凹坑（x≈-1.28 处最低 ≈ -0.278）后归零；自门控（σ(x) 是 0\~1 软开关）。</p>
+<figure style="margin: 1.2em 0;">
+<img src="activation-functions.svg" alt="ReLU、ReLU6、GELU 与 SiLU 的函数曲线对比" loading="lazy" style="width: 100%; height: auto;">
+<figcaption style="font-size: .85em; margin-top: .5em;">图：ReLU 将负区清零，ReLU6 再将正区封顶到 6；GELU/SiLU 平滑且允许少量负值，SiLU 在 x≈-1.28 处最低约 -0.278。</figcaption>
+</figure>
 <h3 id="12-swiglu">1.2 在 SwiGLU 里的位置</h3>
 <p><span class="arithmatex">\(SwiGLU(x) = W_3\big(\mathrm{SiLU}(W_1 x) \odot W_2 x\big)\)</span>：门控分支（放行多少）× 线性分支（内容本体）。实证稳赢 GELU/ReLU FFN，是 Llama/Qwen/K2 全系标配。</p>
 <h3 id="13-ox4">1.3 病根：正区无上界 × 乘性结构 = O(‖x‖⁴)</h3>
